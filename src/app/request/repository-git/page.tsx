@@ -1,13 +1,23 @@
-import AppLayout from "@/components/layout/AppLayout"
-import RequestForm from "@/pages/RequestForm"
-import ProtectedRoute from "@/components/auth/ProtectedRoute"
+"use client";
 
-export default function RepositoryGitRequestPage() {
+import { useState } from "react";
+import AppLayout from "@/components/layout/AppLayout";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import RepositoryGitList from "@/components/services/RepositoryGitList";
+import RepositoryGitForm from "@/components/services/RepositoryGitForm";
+
+export default function RepositoryGitPage() {
+  const [showForm, setShowForm] = useState(false);
+
   return (
     <AppLayout>
       <ProtectedRoute>
-        <RequestForm />
+        {showForm ? (
+          <RepositoryGitForm onBack={() => setShowForm(false)} />
+        ) : (
+          <RepositoryGitList onAddNew={() => setShowForm(true)} />
+        )}
       </ProtectedRoute>
     </AppLayout>
-  )
+  );
 }

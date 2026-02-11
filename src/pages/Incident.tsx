@@ -1,27 +1,52 @@
-'use client'
+"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, AlertTriangle } from "lucide-react";
-import { getServiceById } from "@/data/services";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import FormRenderer from "@/components/forms/FormRenderer";
+import { ArrowLeft, AlertTriangle, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const Incident = () => {
+export default function IncidentPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  const incidentService = getServiceById("laporan-insiden");
+  const [formData, setFormData] = useState({
+    namaPelapor: "",
+    instansi: "",
+    judulInsiden: "",
+    tanggalKejadian: "",
+    kategoriInsiden: "",
+    mediaPelaporan: "",
+    deskripsiInsiden: "",
+  });
 
-  if (!incidentService) {
-    return null;
-  }
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
-  const handleSubmit = async (data: Record<string, unknown>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsLoading(true);
+
+    // Validasi field required
+    if (
+      !formData.namaPelapor ||
+      !formData.judulInsiden ||
+      !formData.tanggalKejadian
+    ) {
+      toast({
+        variant: "destructive",
+        title: "Form belum lengkap",
+        description: "Mohon lengkapi semua field yang wajib diisi",
+      });
+      setIsLoading(false);
+      return;
+    }
 
     // Simulate submission delay
     setTimeout(() => {
@@ -35,57 +60,217 @@ const Incident = () => {
 
       setIsLoading(false);
 
-      // Redirect to home page
-      router.push("/");
+      // Redirect to home page after 1.5s
+      setTimeout(() => {
+        router.push("/");
+      }, 1500);
     }, 1000);
   };
 
-  return (
-    <div className="container py-10">
-      {/* Back Button */}
-      <Link
-        href="/"
-        className="mb-6 inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Kembali ke Beranda
-      </Link>
+  const handleBack = () => {
+    router.push("/");
+  };
 
-      <div className="mx-auto max-w-2xl">
-        {/* Alert Banner */}
-        <div className="mb-6 flex items-start gap-3 rounded-lg border border-destructive/50 bg-destructive/10 p-4">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-          <div>
-            <p className="font-medium text-foreground">Laporkan Insiden TIK</p>
-            <p className="text-sm text-muted-foreground">
-              Gunakan formulir ini untuk melaporkan gangguan atau insiden pada
-              sistem TIK. Tim kami akan segera menindaklanjuti.
-            </p>
+  return (
+    <div className="min-h-screen bg-background py-8">
+      <div className="container mx-auto px-4 max-w-4xl">
+        {/* Back Button */}
+        <button
+          onClick={handleBack}
+          className="mb-6 inline-flex items-center text-sm text-slate-600 dark:text-slate-400 transition-colors hover:text-slate-900 dark:hover:text-slate-50"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Kembali ke Beranda
+        </button>
+
+        <div className="space-y-6">
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
+            Laporan Insiden
+          </h1>
+
+          {/* Alert Banner */}
+          <div className="flex items-start gap-3 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/20 p-4">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600 dark:text-red-400" />
+            <div>
+              <p className="font-medium text-slate-900 dark:text-slate-50">
+                Laporkan Insiden TIK
+              </p>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Gunakan formulir ini untuk melaporkan gangguan atau insiden pada
+                sistem TIK. Tim kami akan segera menindaklanjuti.
+              </p>
+            </div>
+          </div>
+
+          {/* Form Card */}
+          <div className="overflow-hidden border-slate-200/60 bg-white shadow-lg dark:border-slate-800/60 dark:bg-slate-900/50 rounded-lg">
+            {/* Border kuning di atas */}
+            <div className="h-1.5 w-full bg-yellow-500" />
+
+            {/* Header Card */}
+            <div className="border-b border-slate-200/60 bg-white/60 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/60 px-6 py-4">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+                Form Laporan Insiden
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                Berikan informasi selengkap mungkin agar kami dapat menangani
+                dengan cepat
+              </p>
+            </div>
+
+            {/* Content */}
+            <div className="pt-6 px-6 pb-8">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Nama Pelapor */}
+                <div className="space-y-2">
+                  <label className="font-semibold text-slate-900 dark:text-slate-50">
+                    Nama Pelapor
+                  </label>
+                  <input
+                    type="text"
+                    name="namaPelapor"
+                    value={formData.namaPelapor}
+                    onChange={handleInputChange}
+                    className="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-50 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
+                    required
+                  />
+                </div>
+
+                {/* Instansi */}
+                <div className="space-y-2">
+                  <label className="font-semibold text-slate-900 dark:text-slate-50">
+                    Instansi
+                  </label>
+                  <select
+                    name="instansi"
+                    value={formData.instansi}
+                    onChange={handleInputChange}
+                    className="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-50 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
+                  >
+                    <option value="">Pilih Instansi</option>
+                    <option value="diskominfo">
+                      Diskominfo Kota Tangerang
+                    </option>
+                    <option value="dinas-pendidikan">Dinas Pendidikan</option>
+                    <option value="dinas-kesehatan">Dinas Kesehatan</option>
+                    <option value="kecamatan">Kecamatan</option>
+                    <option value="kelurahan">Kelurahan</option>
+                    <option value="opd-lainnya">OPD Lainnya</option>
+                  </select>
+                </div>
+
+                {/* Judul Insiden */}
+                <div className="space-y-2">
+                  <label className="font-semibold text-slate-900 dark:text-slate-50">
+                    Judul Insiden
+                  </label>
+                  <input
+                    type="text"
+                    name="judulInsiden"
+                    value={formData.judulInsiden}
+                    onChange={handleInputChange}
+                    className="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-50 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
+                    required
+                  />
+                </div>
+
+                {/* Tanggal Kejadian */}
+                <div className="space-y-2">
+                  <label className="font-semibold text-slate-900 dark:text-slate-50">
+                    Tanggal Kejadian
+                  </label>
+                  <input
+                    type="date"
+                    name="tanggalKejadian"
+                    value={formData.tanggalKejadian}
+                    onChange={handleInputChange}
+                    className="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-50 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
+                    required
+                  />
+                </div>
+
+                {/* Kategori Insiden */}
+                <div className="space-y-2">
+                  <label className="font-semibold text-slate-900 dark:text-slate-50">
+                    Kategori Insiden
+                  </label>
+                  <select
+                    name="kategoriInsiden"
+                    value={formData.kategoriInsiden}
+                    onChange={handleInputChange}
+                    className="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-50 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
+                  >
+                    <option value="">Pilih kategori</option>
+                    <option value="jaringan">Gangguan Jaringan</option>
+                    <option value="hardware">Hardware/Perangkat</option>
+                    <option value="software">Software/Aplikasi</option>
+                    <option value="keamanan">Keamanan Sistem</option>
+                    <option value="email">Email</option>
+                    <option value="website">Website</option>
+                    <option value="lainnya">Lainnya</option>
+                  </select>
+                </div>
+
+                {/* Media Pelaporan */}
+                <div className="space-y-2">
+                  <label className="font-semibold text-slate-900 dark:text-slate-50">
+                    Media pelaporan*
+                  </label>
+                  <select
+                    name="mediaPelaporan"
+                    value={formData.mediaPelaporan}
+                    onChange={handleInputChange}
+                    className="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-50 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
+                  >
+                    <option value="">Pilih media pelaporan</option>
+                    <option value="telepon">Telepon</option>
+                    <option value="email">Email</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="langsung">Langsung/Tatap Muka</option>
+                    <option value="website">Website/Portal</option>
+                  </select>
+                </div>
+
+                {/* Deskripsi Insiden */}
+                <div className="space-y-2">
+                  <label className="font-semibold text-slate-900 dark:text-slate-50">
+                    Deskripsi Insiden
+                  </label>
+                  <textarea
+                    name="deskripsiInsiden"
+                    value={formData.deskripsiInsiden}
+                    onChange={handleInputChange}
+                    rows={6}
+                    placeholder="Jelaskan detail insiden yang terjadi..."
+                    className="min-h-[150px] w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none resize-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-50 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
+                  />
+                </div>
+
+                {/* Action Button */}
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="h-12 px-8 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Mengirim...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        Kirim Laporan
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
-
-        <Card className="border-border bg-card">
-          <CardHeader className="border-b border-border">
-            <CardTitle className="text-card-foreground">
-              Formulir Laporan Insiden
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Berikan informasi selengkap mungkin agar kami dapat menangani
-              dengan cepat
-            </p>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <FormRenderer
-              fields={incidentService.formSchema}
-              onSubmit={handleSubmit}
-              isLoading={isLoading}
-              submitLabel="Kirim Laporan"
-            />
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
-};
-
-export default Incident;
+}

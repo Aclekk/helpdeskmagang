@@ -56,7 +56,7 @@ const FloatingChatButton = () => {
                 {/* Message bubble */}
                 <div className="max-w-[220px] rounded-2xl rounded-tl-sm bg-muted px-4 py-3 dark:bg-slate-700">
                   <p className="text-sm leading-relaxed text-foreground dark:text-slate-200">
-                    Halo! 👋 Selamat datang di Helpdesk TIK. Ada yang bisa kami
+                    Halo! Selamat datang di Helpdesk TIK. Ada yang bisa kami
                     bantu?
                   </p>
                 </div>
@@ -65,7 +65,7 @@ const FloatingChatButton = () => {
               {/* Info Message */}
               <div className="mx-auto rounded-lg bg-blue-50 px-4 py-2 text-center dark:bg-cyan-500/10">
                 <p className="text-xs font-medium text-blue-700 dark:text-cyan-400">
-                  🤖 Chatbot AI Helpdesk
+                   Chatbot AI Helpdesk
                 </p>
                 <p className="mt-1 text-xs text-blue-600 dark:text-cyan-300">
                   (Integrasi sedang dalam pengembangan)
