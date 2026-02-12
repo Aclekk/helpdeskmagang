@@ -18,7 +18,7 @@ const RequestForm = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Handle params properly untuk Next.js App Router
-  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const id = params?.id ? (Array.isArray(params.id) ? params.id[0] : params.id) : "";
   
   // Debug: Log semua params
   console.log('RequestForm - All params:', params);
@@ -31,9 +31,9 @@ const RequestForm = () => {
       <div className="container py-10">
         <Link
           href="/services/vpn"
-          className="mb-6 inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="group mb-8 inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-all hover:bg-blue-100 hover:text-blue-700 hover:shadow-md dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-blue-950 dark:hover:text-blue-400"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
           Kembali ke Detail Layanan
         </Link>
         <VpnRequestForm />
@@ -56,28 +56,12 @@ const RequestForm = () => {
       <div className="container py-10">
         <Link
           href={`/services/${id}`}
-          className="mb-6 inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="group mb-8 inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-all hover:bg-blue-100 hover:text-blue-700 hover:shadow-md dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-blue-950 dark:hover:text-blue-400"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
           Kembali ke Detail Layanan
         </Link>
         <VideoConferenceRequestForm />
-      </div>
-    );
-  }
-
-  // Handle VPN case
-  if (id === "vpn") {
-    return (
-      <div className="container py-10">
-        <Link
-          href={`/services/${id}`}
-          className="mb-6 inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Kembali ke Detail Layanan
-        </Link>
-        <VpnRequestForm />
       </div>
     );
   }

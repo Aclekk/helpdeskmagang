@@ -39,7 +39,6 @@ const Services = () => {
         <div className="relative">
           {/* Breadcrumb / Label */}
           <div className="mb-4 flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             <span className="text-sm font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">
               Diskominfo Kota Tangerang
             </span>

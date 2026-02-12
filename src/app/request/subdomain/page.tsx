@@ -15,7 +15,7 @@ export default function SubdomainPage() {
         {showForm ? (
           <SubdomainForm onBack={() => setShowForm(false)} />
         ) : (
-          <SubdomainList onAddNew={() => setShowForm(true)} />
+          <SubdomainList onAddNew={() => setShowForm(true)} onBack={() => window.history.back()} />
         )}
       </ProtectedRoute>
     </AppLayout>

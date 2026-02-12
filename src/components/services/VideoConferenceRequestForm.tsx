@@ -135,7 +135,7 @@ export default function VideoConferenceRequestForm() {
       </h1>
 
       <Card className="overflow-hidden border-slate-200/60 bg-white shadow-lg dark:border-slate-800/60 dark:bg-slate-900/50">
-        <div className="h-1.5 w-full bg-yellow-500" />
+        <div className="h-1.5 w-full bg-blue-600" />
 
         <CardHeader className="border-b border-slate-200/60 bg-white/60 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/60">
           <CardTitle className="text-lg font-semibold text-slate-900 dark:text-slate-50">

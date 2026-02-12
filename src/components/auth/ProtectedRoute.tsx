@@ -30,7 +30,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   // Simpan current path di localStorage biar bisa balik kesini setelah login
   useEffect(() => {
     if (!isAuthenticated) {
-      localStorage.setItem('redirectPath', pathname);
+      localStorage.setItem('redirectPath', pathname || '/');
       router.push('/login');
     }
   }, [isAuthenticated, pathname, router]);

@@ -61,7 +61,7 @@ const ServiceDetail = () => {
   const params = useParams();
   const router = useRouter();
   const { isAuthenticated, user } = useAuth();
-  const service = params.id ? getServiceById(params.id as string) : undefined;
+  const service = params?.id ? getServiceById(params.id as string) : undefined;
 
   if (!service) {
     router.push('/services');
@@ -96,6 +96,32 @@ const ServiceDetail = () => {
           { name: "perangkatDibutuhkan", label: "Perangkat yang dibutuhkan", required: false },
           { name: "jenisKegiatan", label: "Jenis Kegiatan", required: false },
           { name: "keterangan", label: "Keterangan", required: false },
+        ]
+      : service.id === "subdomain"
+      ? [
+          { name: "namaAplikasi", label: "Nama Aplikasi", required: true },
+          { name: "jenisAplikasi", label: "Jenis Aplikasi", required: true },
+          { name: "unitOrganisasi", label: "Unit Organisasi", required: true },
+          { name: "emailPemohon", label: "Email Pemohon", required: false },
+          { name: "namaSubdomain", label: "Nama Subdomain", required: true },
+          { name: "bahasaPemrograman", label: "Bahasa Pemrograman", required: true },
+          { name: "framework", label: "Framework", required: true },
+          { name: "webserver", label: "Webserver", required: true },
+          { name: "tanggalRencana", label: "Tanggal Rencana", required: true },
+          { name: "keteranganTambahan", label: "Keterangan Tambahan", required: false },
+        ]
+      : service.id === "vpn"
+      ? [
+          { name: "jenisPermohonan", label: "Jenis Permohonan", required: true },
+          { name: "nama", label: "Nama", required: true },
+          { name: "jabatan", label: "Jabatan", required: true },
+          { name: "statusPegawai", label: "Status Pegawai", required: true },
+          { name: "nip", label: "NIP", required: true },
+          { name: "email", label: "Email", required: true },
+          { name: "nomorTelp", label: "Nomor Telp yang terhubung ke Whatsapp", required: true },
+          { name: "instansi", label: "Instansi", required: true },
+          { name: "tujuan", label: "Tujuan", required: true },
+          { name: "tandaTangan", label: "Tanda Tangan", required: true },
         ]
       : service.formSchema.map((f) => ({
           name: f.name,
@@ -149,18 +175,10 @@ const ServiceDetail = () => {
 
                 {/* Title & Meta */}
                 <div className="flex-1 space-y-3">
-                  <div className="flex flex-wrap items-start gap-3">
-                    <CardTitle className="text-3xl font-bold text-slate-900 dark:text-slate-50">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <CardTitle className="text-3xl font-bold leading-tight text-slate-900 dark:text-slate-50">
                       {service.title}
                     </CardTitle>
-                    {category && (
-                      <Badge
-                        variant="secondary"
-                        className="border border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/50 dark:text-blue-300"
-                      >
-                        {category.label}
-                      </Badge>
-                    )}
                   </div>
                   <p className="text-lg leading-relaxed text-slate-600 dark:text-slate-400">
                     {service.description}
@@ -192,7 +210,16 @@ const ServiceDetail = () => {
 
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button className="w-fit bg-emerald-600 hover:bg-emerald-700">
+                          <Button 
+                            className="w-fit bg-emerald-600 hover:bg-emerald-700"
+                            onClick={(e) => {
+                              if (!isAuthenticated) {
+                                e.preventDefault();
+                                localStorage.setItem('redirectPath', '/services/tanda-tangan-elektronik');
+                                router.push('/login');
+                              }
+                            }}
+                          >
                             Ubah passphrase
                           </Button>
                         </AlertDialogTrigger>
@@ -401,11 +428,11 @@ const ServiceDetail = () => {
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                     <span className="font-medium">Email:</span>
-                    <span>tik@tangerangkota.go.id</span>
+                    <span>XXXXXX@tangerangkota.go.id</span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                     <span className="font-medium">Telp:</span>
-                    <span>(021) 5517744</span>
+                    <span>(08X) XXXXX</span>
                   </div>
                 </div>
               </CardContent>

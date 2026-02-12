@@ -274,7 +274,7 @@ export const services: Service[] = [
   {
     id: "video-conference",
     title: "Video Conference Zoom",
-    description: "Pengajuan penggunaan akun Zoom premium untuk meeting",
+    description: "Pengajuan layanan Zoom Meeting untuk kegiatan kedinasan.",
     category: "meeting",
     icon: "Video",
     route: "/services/video-conference",

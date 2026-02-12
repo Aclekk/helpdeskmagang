@@ -1,12 +1,13 @@
 "use client";
 
-import { FolderOpen, Plus } from "lucide-react";
+import { FolderOpen, Plus, ArrowLeft } from "lucide-react";
 
 interface SubdomainListProps {
   onAddNew: () => void;
+  onBack?: () => void;
 }
 
-export default function SubdomainList({ onAddNew }: SubdomainListProps) {
+export default function SubdomainList({ onAddNew, onBack }: SubdomainListProps) {
   // TODO: Nanti akan diisi dengan data dari database/API
   const pengajuanList: any[] = [];
 
@@ -15,6 +16,17 @@ export default function SubdomainList({ onAddNew }: SubdomainListProps) {
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Page Header */}
         <div className="space-y-3">
+          {/* Back Button - Style seperti ServiceDetail */}
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="group mb-4 inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-all hover:bg-blue-100 hover:text-blue-700 hover:shadow-md dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-blue-950 dark:hover:text-blue-400"
+            >
+              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+              Kembali ke Daftar Layanan
+            </button>
+          )}
+          
           <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
             Layanan Subdomain
           </h1>
@@ -26,7 +38,7 @@ export default function SubdomainList({ onAddNew }: SubdomainListProps) {
         {/* Main Card */}
         <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xl shadow-slate-200/50 dark:border-slate-800/80 dark:bg-slate-900/95 dark:shadow-slate-950/50">
           {/* Top Accent Border */}
-          <div className="h-1 w-full bg-gradient-to-r from-amber-400 via-blue-500 to-amber-500" />
+          <div className="h-1 w-full bg-blue-600" />
 
           {/* Card Header */}
           <div className="border-b border-slate-200/80 bg-gradient-to-r from-slate-50/80 to-white/80 backdrop-blur-sm dark:border-slate-800/80 dark:from-slate-900/80 dark:to-slate-900/60 px-8 py-6">
@@ -39,16 +51,27 @@ export default function SubdomainList({ onAddNew }: SubdomainListProps) {
                   Kelola seluruh pengajuan subdomain Anda di sini
                 </p>
               </div>
-              <button
-                onClick={onAddNew}
-                className="group relative inline-flex h-12 items-center gap-2.5 overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-8 font-semibold text-white shadow-lg shadow-blue-600/30 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-blue-600/40 active:scale-100 dark:from-blue-600 dark:to-blue-700 dark:shadow-blue-500/20 dark:hover:shadow-blue-500/30"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                <Plus className="relative z-10 h-5 w-5" />
-                <span className="relative z-10 text-sm">
-                  Tambah Pengajuan Baru
-                </span>
-              </button>
+              <div className="flex gap-3">
+                {onBack && (
+                  <button
+                    onClick={onBack}
+                    className="group inline-flex h-12 items-center gap-2.5 rounded-xl border-2 border-slate-300 bg-white px-6 font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:border-slate-400 hover:bg-slate-50 hover:shadow-md active:scale-98 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-700/80"
+                  >
+                    <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+                    <span className="text-sm">Kembali</span>
+                  </button>
+                )}
+                <button
+                  onClick={onAddNew}
+                  className="group relative inline-flex h-12 items-center gap-2.5 overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-8 font-semibold text-white shadow-lg shadow-blue-600/30 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-blue-600/40 active:scale-100 dark:from-blue-600 dark:to-blue-700 dark:shadow-blue-500/20 dark:hover:shadow-blue-500/30"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  <Plus className="relative z-10 h-5 w-5" />
+                  <span className="relative z-10 text-sm">
+                    Tambah Pengajuan Baru
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
 

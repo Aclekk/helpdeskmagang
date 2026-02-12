@@ -72,19 +72,19 @@ export default function IncidentPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
-        {/* Back Button */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Back Button - Style seperti halaman lain */}
         <button
           onClick={handleBack}
-          className="mb-6 inline-flex items-center text-sm text-slate-600 dark:text-slate-400 transition-colors hover:text-slate-900 dark:hover:text-slate-50"
+          className="group mb-4 inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-all hover:bg-blue-100 hover:text-blue-700 hover:shadow-md dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-blue-950 dark:hover:text-blue-400"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
           Kembali ke Beranda
         </button>
 
         <div className="space-y-6">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
+          <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
             Laporan Insiden
           </h1>
 
@@ -103,12 +103,12 @@ export default function IncidentPage() {
           </div>
 
           {/* Form Card */}
-          <div className="overflow-hidden border-slate-200/60 bg-white shadow-lg dark:border-slate-800/60 dark:bg-slate-900/50 rounded-lg">
-            {/* Border kuning di atas */}
-            <div className="h-1.5 w-full bg-yellow-500" />
+          <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-lg dark:border-slate-800/60 dark:bg-slate-900/50">
+            {/* Border biru di atas */}
+            <div className="h-1.5 w-full bg-blue-600" />
 
             {/* Header Card */}
-            <div className="border-b border-slate-200/60 bg-white/60 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/60 px-6 py-4">
+            <div className="border-b border-slate-200/60 bg-gradient-to-r from-slate-50/80 to-white/80 backdrop-blur-sm dark:border-slate-800/60 dark:from-slate-900/80 dark:to-slate-900/60 px-8 py-6">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
                 Form Laporan Insiden
               </h2>

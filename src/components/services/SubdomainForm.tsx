@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, RotateCcw, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SubdomainFormProps {
   onBack: () => void;
@@ -23,6 +24,7 @@ interface FormData {
 
 export default function SubdomainForm({ onBack }: SubdomainFormProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [formData, setFormData] = useState<FormData>({
     namaAplikasi: "",
     jenisAplikasi: "",
@@ -35,6 +37,16 @@ export default function SubdomainForm({ onBack }: SubdomainFormProps) {
     tanggalRencana: "",
     keteranganTambahan: "",
   });
+
+  // Auto-fill email dari user yang login
+  useEffect(() => {
+    if (user?.email) {
+      setFormData(prev => ({
+        ...prev,
+        emailPemohon: user.email
+      }));
+    }
+  }, [user]);
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -125,6 +137,15 @@ export default function SubdomainForm({ onBack }: SubdomainFormProps) {
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Page Header */}
         <div className="space-y-3">
+          {/* Back Button - Style seperti ServiceDetail */}
+          <button
+            onClick={onBack}
+            className="group mb-4 inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-all hover:bg-blue-100 hover:text-blue-700 hover:shadow-md dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-blue-950 dark:hover:text-blue-400"
+          >
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+            Kembali ke Detail Layanan
+          </button>
+          
           <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
             Form Pengajuan Subdomain
           </h1>
@@ -136,7 +157,7 @@ export default function SubdomainForm({ onBack }: SubdomainFormProps) {
         {/* Main Form Card */}
         <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xl shadow-slate-200/50 dark:border-slate-800/80 dark:bg-slate-900/95 dark:shadow-slate-950/50">
           {/* Top Accent Border */}
-          <div className="h-1 w-full bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-500" />
+          <div className="h-1 w-full bg-blue-600" />
 
           {/* Card Header */}
           <div className="border-b border-slate-200/80 bg-gradient-to-r from-slate-50/80 to-white/80 backdrop-blur-sm dark:border-slate-800/80 dark:from-slate-900/80 dark:to-slate-900/60 px-8 py-6">
@@ -155,7 +176,7 @@ export default function SubdomainForm({ onBack }: SubdomainFormProps) {
                 className="group inline-flex h-12 items-center gap-2.5 rounded-xl border-2 border-slate-300 bg-white px-6 font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:border-slate-400 hover:bg-slate-50 hover:shadow-md active:scale-98 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-700/80"
               >
                 <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-                <span className="text-sm">Kembali ke Daftar</span>
+                <span className="text-sm">Kembali ke Detail Layanan</span>
               </button>
             </div>
           </div>
@@ -220,15 +241,15 @@ export default function SubdomainForm({ onBack }: SubdomainFormProps) {
                 {/* Email Pemohon */}
                 <div className="space-y-2.5">
                   <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                    Email Pemohon
+                    Email Pemohon <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="email"
                     name="emailPemohon"
                     value={formData.emailPemohon}
-                    onChange={handleInputChange}
+                    readOnly
                     placeholder="ajat@tangerangkota.go.id"
-                    className="block w-full h-12 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-200 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white dark:placeholder:text-slate-500 dark:hover:border-slate-600 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
+                    className="block w-full h-12 rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-200 cursor-not-allowed dark:border-slate-700 dark:bg-slate-800/80 dark:text-white dark:placeholder:text-slate-500"
                   />
                   <p className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                     <svg

@@ -15,7 +15,7 @@ export default function RepositoryGitPage() {
         {showForm ? (
           <RepositoryGitForm onBack={() => setShowForm(false)} />
         ) : (
-          <RepositoryGitList onAddNew={() => setShowForm(true)} />
+          <RepositoryGitList onAddNew={() => setShowForm(true)} onBack={() => window.history.back()} />
         )}
       </ProtectedRoute>
     </AppLayout>

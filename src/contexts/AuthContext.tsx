@@ -11,6 +11,7 @@ interface User {
   email: string;
   name: string;
   nip?: string;
+  avatar?: string;
 }
 
 // Type untuk Auth Context
@@ -74,6 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email: email,
         name: email.split("@")[0], // Ambil nama dari email
         nip: undefined, // Bisa diisi dari API nanti
+        avatar: undefined, // Bisa diisi dari API nanti
       };
 
       // Save to localStorage (hanya di client-side)

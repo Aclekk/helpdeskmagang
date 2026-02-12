@@ -169,16 +169,6 @@ const Login = () => {
             </form>
           </CardContent>
         </Card>
-
-        {/* Demo Credentials Info - Hapus saat production */}
-        <Card className="mt-4 border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/20">
-          <CardContent className="pt-4">
-            <p className="text-center text-xs text-blue-700 dark:text-blue-300">
-              <strong>Demo:</strong> Gunakan email @tangerangkota.go.id dan
-              password minimal 6 karakter
-            </p>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

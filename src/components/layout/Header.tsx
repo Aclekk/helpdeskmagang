@@ -11,16 +11,21 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Moon, Sun, LogIn, LogOut, User } from "lucide-react";
+import { Moon, Sun, LogIn, LogOut, User, Monitor, ChevronDown } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import Image from "next/image";
 import logoHelpdesk from "@/assets/logo_helpdeskTIK.png";
+import { useState } from "react";
 
 const Header = () => {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme, toggleTheme } = useTheme();
   const { isAuthenticated, user, logout } = useAuth();
   const router = useRouter();
+  const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -56,54 +61,98 @@ const Header = () => {
         {/* Right Section */}
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           {/* Theme Toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="h-9 w-9"
-            aria-label="Toggle theme"
-          >
-            {theme === "dark" ? (
-              <Sun className="h-4 w-4" />
-            ) : (
-              <Moon className="h-4 w-4" />
-            )}
-          </Button>
+          <DropdownMenu onOpenChange={setIsThemeDropdownOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                aria-label="Toggle theme"
+              >
+                {resolvedTheme === "dark" ? (
+                  <Moon className="h-4 w-4" />
+                ) : (
+                  <Sun className="h-4 w-4" />
+                )}
+                <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${isThemeDropdownOpen ? "rotate-180" : ""}`} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setTheme("light")}>
+                <Sun className="mr-2 h-4 w-4" />
+                Light
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTheme("dark")}>
+                <Moon className="mr-2 h-4 w-4" />
+                Dark
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTheme("auto")}>
+                <Monitor className="mr-2 h-4 w-4" />
+                Auto
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Auth Section */}
           {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="gap-2 px-3 sm:px-4"
-                  aria-label="User menu"
-                >
-                  <User className="h-4 w-4" />
-                  {/* Nama user hanya muncul di sm ke atas */}
-                  <span className="hidden max-w-[140px] truncate sm:inline">
+                <button className="flex items-center gap-3 rounded-full px-2 py-1 transition hover:bg-muted">
+                  {/* Avatar */}
+                  <div className="h-9 w-9 overflow-hidden rounded-full border shadow-sm">
+                    <Image
+                      src={user?.avatar || "/placeholder.svg"}
+                      alt="Avatar"
+                      width={36}
+                      height={36}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+
+                  {/* Nama */}
+                  <span className="hidden text-sm font-medium sm:block">
                     {user?.name}
                   </span>
-                </Button>
+                </button>
               </DropdownMenuTrigger>
 
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium">{user?.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {user?.email}
-                    </p>
+              <DropdownMenuContent
+                align="end"
+                className="w-72 overflow-hidden rounded-xl p-0 shadow-xl"
+              >
+                {/* Header Biru */}
+                <div className="relative bg-blue-600 px-6 pb-10 pt-6 text-center text-white">
+                  <div className="mx-auto mb-3 h-20 w-20 overflow-hidden rounded-full border-4 border-white shadow-lg">
+                    <Image
+                      src={user?.avatar || "/placeholder.svg"} // kalau belum ada avatar pakai default
+                      alt="Avatar"
+                      width={80}
+                      height={80}
+                      className="h-full w-full object-cover"
+                    />
                   </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="cursor-pointer"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Keluar
-                </DropdownMenuItem>
+
+                  <p className="text-sm font-semibold tracking-wide">
+                    {user?.name}
+                  </p>
+                </div>
+
+                {/* Body */}
+                <div className="flex items-center justify-between bg-background px-6 py-4">
+                  <button
+                    onClick={() => router.push("/profile")}
+                    className="rounded-md px-4 py-2 text-sm font-medium hover:bg-muted transition"
+                  >
+                    Profile
+                  </button>
+
+                  <button
+                    onClick={handleLogout}
+                    className="rounded-md px-4 py-2 text-sm font-medium hover:bg-muted transition"
+                  >
+                    Sign out
+                  </button>
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
