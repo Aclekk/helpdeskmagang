@@ -5,10 +5,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/global-error.js"
     ],
-    "/login/page": [
+    "/services/[id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/login/page.js"
+      "static/chunks/app/services/[id]/page.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
@@ -31,15 +31,35 @@
       "static/chunks/main-app.js",
       "static/chunks/app/not-found.js"
     ],
+    "/services/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/services/page.js"
+    ],
+    "/request/vpn/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/request/vpn/page.js"
+    ],
+    "/request/[id]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/request/[id]/page.js"
+    ],
+    "/request/email-resmi/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/request/email-resmi/page.js"
+    ],
+    "/request/repository-git/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/request/repository-git/page.js"
+    ],
     "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/page.js"
-    ],
-    "/_not-found/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
     ]
   }
 }

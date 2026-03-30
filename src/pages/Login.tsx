@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -15,7 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, LogIn, AlertCircle } from "lucide-react";
+import { Loader2, LogIn, AlertCircle, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import logoHelpdesk from "@/assets/logo_helpdeskTIK.png";
 
@@ -26,6 +28,7 @@ const Login = () => {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -116,18 +119,38 @@ const Login = () => {
                 />
               </div>
 
-              {/* Password Field */}
+              {/* Password Field with Show/Hide Toggle */}
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Masukkan password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Masukkan password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+                    onMouseDown={() => setShowPassword(true)}
+                    onMouseUp={() => setShowPassword(false)}
+                    onMouseLeave={() => setShowPassword(false)}
+                    onTouchStart={() => setShowPassword(true)}
+                    onTouchEnd={() => setShowPassword(false)}
+                    disabled={isLoading}
+                    aria-label={showPassword ? "Sembunyikan password" : "Lihat password"}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Login Button */}

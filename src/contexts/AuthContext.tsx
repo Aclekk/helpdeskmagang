@@ -12,6 +12,7 @@ interface User {
   name: string;
   nip?: string;
   avatar?: string;
+  whatsapp?: string;
 }
 
 // Type untuk Auth Context
@@ -64,12 +65,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { ok: false, message: data?.error || "NIP atau password salah" };
       }
 
-      // Create user object
+      // Extract user data from API response
+      const apiData = data?.data || data;
+
+      // Create user object with name from API (field: nama_pegawai)
       const userData: User = {
         email: email,
-        name: email,
-        nip: email,
-        avatar: undefined,
+        name: apiData?.nama_pegawai || apiData?.nama_lengkap || apiData?.nama || apiData?.name || email,
+        nip: apiData?.nip || email,
+        avatar: apiData?.foto || apiData?.url_foto || apiData?.avatar || undefined,
+        whatsapp: apiData?.whatsapp || apiData?.no_wa || apiData?.no_hp || apiData?.nomor_hp || apiData?.telp || undefined,
       };
 
       // Save to localStorage (hanya di client-side)

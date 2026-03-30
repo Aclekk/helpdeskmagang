@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAuth } from "@/contexts/AuthContext";
 
 function formatDateDDMMYYYY(date = new Date()) {
   const dd = String(date.getDate()).padStart(2, "0");
@@ -19,6 +20,13 @@ function formatDateDDMMYYYY(date = new Date()) {
 }
 
 export default function VideoConferenceRequestForm() {
+  const { user } = useAuth();
+
+  // refs untuk trigger date/time picker
+  const tanggalRef = useRef<HTMLInputElement>(null);
+  const waktuMulaiRef = useRef<HTMLInputElement>(null);
+  const waktuSelesaiRef = useRef<HTMLInputElement>(null);
+
   // default request date (readonly)
   const requestDate = useMemo(() => formatDateDDMMYYYY(new Date()), []);
 
@@ -40,11 +48,31 @@ export default function VideoConferenceRequestForm() {
   const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
 
-  const [lokasiAcara, setLokasiAcara] = useState("");
-  const [perangkatDibutuhkan, setPerangkatDibutuhkan] = useState("");
-  const [jenisKegiatan, setJenisKegiatan] = useState<string>("internal");
+  // Auto-fill nama dan whatsapp dari data login Semantic
+  useEffect(() => {
+    if (user) {
+      setNamaPemohon(user.name || "");
+      setWhatsapp(user.whatsapp || "");
+    }
+  }, [user]);
 
-  const [keterangan, setKeterangan] = useState("");
+  // Handler untuk trigger date/time picker saat field diklik
+  const handleFieldClick = (ref: React.RefObject<HTMLInputElement>) => {
+    ref.current?.showPicker();
+  };
+
+  const [lokasiAcara, setLokasiAcara] = useState("");
+  const [perangkatDibutuhkan, setPerangkatDibutuhkan] = useState<string[]>([]);
+  const [namaHost, setNamaHost] = useState("");
+
+  // Toggle perangkat selection
+  const togglePerangkat = (perangkat: string) => {
+    setPerangkatDibutuhkan((prev) =>
+      prev.includes(perangkat)
+        ? prev.filter((p) => p !== perangkat)
+        : [...prev, perangkat]
+    );
+  };
 
   // ====== Rapat berulang (recurrence) ======
   type RepeatType = "daily" | "weekly" | "monthly";
@@ -81,11 +109,8 @@ export default function VideoConferenceRequestForm() {
 
   const pesertaOptions = useMemo(
     () => [
-      { value: "1-25", label: "1 - 25" },
-      { value: "26-50", label: "26 - 50" },
-      { value: "51-100", label: "51 - 100" },
-      { value: "101-300", label: "101 - 300" },
-      { value: "300+", label: "Lebih dari 300" },
+      { value: "1-300", label: "1 - 300" },
+      { value: "300-1000", label: "300 - 1000" },
     ],
     []
   );
@@ -110,8 +135,7 @@ export default function VideoConferenceRequestForm() {
       whatsapp,
       lokasiAcara,
       perangkatDibutuhkan,
-      jenisKegiatan,
-      keterangan,
+      namaHost,
       recurrence: rapatBerulang
         ? {
             repeatType,
@@ -173,10 +197,13 @@ export default function VideoConferenceRequestForm() {
                   Tanggal Pelaksanaan <span className="text-red-500">*</span>
                 </label>
                 <Input
+                  ref={tanggalRef}
                   type="date"
                   value={tanggalPelaksanaan}
                   onChange={(e) => setTanggalPelaksanaan(e.target.value)}
+                  onClick={() => handleFieldClick(tanggalRef)}
                   required
+                  className="cursor-pointer"
                 />
               </div>
 
@@ -380,10 +407,13 @@ export default function VideoConferenceRequestForm() {
                   Waktu Mulai <span className="text-red-500">*</span>
                 </label>
                 <Input
+                  ref={waktuMulaiRef}
                   type="time"
                   value={waktuMulai}
                   onChange={(e) => setWaktuMulai(e.target.value)}
+                  onClick={() => handleFieldClick(waktuMulaiRef)}
                   required
+                  className="cursor-pointer"
                 />
               </div>
               <div className="md:col-span-6 space-y-2">
@@ -391,9 +421,12 @@ export default function VideoConferenceRequestForm() {
                   Waktu Selesai
                 </label>
                 <Input
+                  ref={waktuSelesaiRef}
                   type="time"
                   value={waktuSelesai}
                   onChange={(e) => setWaktuSelesai(e.target.value)}
+                  onClick={() => handleFieldClick(waktuSelesaiRef)}
+                  className="cursor-pointer"
                 />
               </div>
             </div>
@@ -438,9 +471,8 @@ export default function VideoConferenceRequestForm() {
                 </label>
                 <Input
                   value={namaPemohon}
-                  onChange={(e) => setNamaPemohon(e.target.value)}
-                  placeholder="Nama pemohon"
-                  required
+                  readOnly
+                  className="bg-slate-50 dark:bg-slate-800 cursor-not-allowed"
                 />
               </div>
 
@@ -470,17 +502,21 @@ export default function VideoConferenceRequestForm() {
                   required
                 />
               </div>
+            </div>
 
-              <div className="md:col-span-6 space-y-2">
-                <label className="font-semibold text-slate-900 dark:text-slate-50">
-                  No. Whatsapp
-                </label>
-                <Input
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  placeholder="08xxxxxxxxxx"
-                />
-              </div>
+            {/* Whatsapp */}
+            <div className="space-y-2">
+              <label className="font-semibold text-slate-900 dark:text-slate-50">
+                No. Whatsapp
+              </label>
+              <Input
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value)}
+                placeholder="Masukkan nomor WhatsApp"
+              />
+              <p className="text-sm text-red-500">
+                Harap pastikan nomor tersebut aktif dan terdaftar di WhatsApp. Jika sudah tidak aktif, silakan diperbaharui.
+              </p>
             </div>
 
             {/* Lokasi Acara */}
@@ -499,39 +535,34 @@ export default function VideoConferenceRequestForm() {
               <label className="font-semibold text-slate-900 dark:text-slate-50">
                 Perangkat Yang dibutuhkan
               </label>
-              <textarea
-                className="min-h-[96px] w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-50"
-                value={perangkatDibutuhkan}
-                onChange={(e) => setPerangkatDibutuhkan(e.target.value)}
-                placeholder="Tuliskan perangkat yang dibutuhkan (opsional)"
-              />
+              <div className="flex flex-wrap gap-6">
+                {[
+                  ["Pendampingan personil", "Pendampingan personil"],
+                  ["Alat teleconference", "Alat teleconference"],
+                  ["Hanya akun zoom", "Hanya akun zoom"],
+                ].map(([val, label]) => (
+                  <label key={val} className="flex items-center gap-2">
+                    <Checkbox
+                      checked={perangkatDibutuhkan.includes(val)}
+                      onCheckedChange={() => togglePerangkat(val)}
+                    />
+                    <span className="text-slate-700 dark:text-slate-200">
+                      {label}
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
 
-            {/* Jenis Kegiatan */}
+            {/* Nama Host */}
             <div className="space-y-2">
               <label className="font-semibold text-slate-900 dark:text-slate-50">
-                Jenis Kegiatan
+                Nama Host
               </label>
-              <Select value={jenisKegiatan} onValueChange={setJenisKegiatan}>
-                <SelectTrigger className="h-12 rounded-xl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="internal">Internal</SelectItem>
-                  <SelectItem value="external">External</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Keterangan */}
-            <div className="space-y-2">
-              <label className="font-semibold text-slate-900 dark:text-slate-50">
-                Keterangan
-              </label>
-              <textarea
-                className="min-h-[120px] w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-50"
-                value={keterangan}
-                onChange={(e) => setKeterangan(e.target.value)}
+              <Input
+                value={namaHost}
+                onChange={(e) => setNamaHost(e.target.value)}
+                placeholder="Masukkan nama host"
               />
             </div>
 

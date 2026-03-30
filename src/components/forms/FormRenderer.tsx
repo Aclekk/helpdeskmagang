@@ -198,8 +198,8 @@ const FormRenderer = ({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {fields.map(renderField)}
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      <Button type="submit" className="w-full h-12 text-base font-medium" disabled={isLoading}>
+        {isLoading && <Loader2 className="mr-3 h-5 w-5 animate-spin" />}
         {submitLabel}
       </Button>
     </form>

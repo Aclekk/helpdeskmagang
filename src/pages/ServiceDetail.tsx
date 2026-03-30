@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic';
+
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
@@ -82,7 +84,6 @@ const ServiceDetail = () => {
           { name: "tanggalPermohonan", label: "Tanggal Permohonan", required: false },
           { name: "judulKegiatan", label: "Judul Kegiatan", required: true },
           { name: "tanggalPelaksanaan", label: "Tanggal Pelaksanaan", required: true },
-          { name: "rapatBerulang", label: "Rapat berulang", required: false },
           { name: "jumlahPeserta", label: "Jumlah Peserta", required: false },
           { name: "waktuMulai", label: "Waktu Mulai", required: true },
           { name: "waktuSelesai", label: "Waktu Selesai", required: false },
@@ -94,8 +95,7 @@ const ServiceDetail = () => {
           { name: "whatsapp", label: "No. Whatsapp", required: false },
           { name: "lokasiAcara", label: "Lokasi Acara", required: false },
           { name: "perangkatDibutuhkan", label: "Perangkat yang dibutuhkan", required: false },
-          { name: "jenisKegiatan", label: "Jenis Kegiatan", required: false },
-          { name: "keterangan", label: "Keterangan", required: false },
+          { name: "namaHost", label: "Nama Host", required: false },
         ]
       : service.id === "subdomain"
       ? [
@@ -164,9 +164,9 @@ const ServiceDetail = () => {
           {/* Header Card */}
           <Card className="overflow-hidden border-slate-200/60 bg-gradient-to-br from-white via-blue-50/30 to-cyan-50/20 shadow-lg dark:border-slate-800/60 dark:from-slate-900/80 dark:via-blue-950/20 dark:to-cyan-950/10">
             <CardHeader className="border-b border-slate-200/60 bg-white/60 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/60">
-              <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+              <div className="flex flex-row items-start gap-4 sm:gap-6">
                 {/* Icon Box - Premium */}
-                <div className="relative">
+                <div className="relative flex-shrink-0">
                   <div className="absolute inset-0 rounded-2xl bg-blue-500/20 blur-2xl" />
                   <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl border border-blue-200/50 bg-gradient-to-br from-blue-100 to-blue-50 shadow-lg dark:border-blue-800/50 dark:from-blue-950/60 dark:to-blue-900/40">
                     <IconComponent className="h-10 w-10 text-blue-600 dark:text-blue-400" />
@@ -176,11 +176,11 @@ const ServiceDetail = () => {
                 {/* Title & Meta */}
                 <div className="flex-1 space-y-3">
                   <div className="flex flex-wrap items-center gap-3">
-                    <CardTitle className="text-3xl font-bold leading-tight text-slate-900 dark:text-slate-50">
+                    <CardTitle className="text-lg font-bold leading-tight text-slate-900 dark:text-slate-50 sm:text-xl lg:text-2xl xl:text-3xl">
                       {service.title}
                     </CardTitle>
                   </div>
-                  <p className="text-lg leading-relaxed text-slate-600 dark:text-slate-400">
+                  <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400 sm:text-base lg:text-lg">
                     {service.description}
                   </p>
                 </div>
@@ -193,7 +193,7 @@ const ServiceDetail = () => {
                   <Card className="overflow-hidden border-slate-200/60 bg-white/80 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/50">
                     <div className="h-1.5 w-full bg-blue-600" />
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-base font-semibold text-slate-900 dark:text-slate-50">
+                      <CardTitle className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:text-base">
                         Data Tanda Tangan Elektronik
                       </CardTitle>
                     </CardHeader>
@@ -254,7 +254,7 @@ const ServiceDetail = () => {
                   <Card className="overflow-hidden border-slate-200/60 bg-white/80 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/50">
                     <div className="h-1.5 w-full bg-blue-600" />
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-base font-semibold text-slate-900 dark:text-slate-50">
+                      <CardTitle className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:text-base">
                         Basis Pengetahuan
                       </CardTitle>
                     </CardHeader>
@@ -300,7 +300,7 @@ const ServiceDetail = () => {
                 <>
                   {/* Informasi Layanan */}
                   <div>
-                    <h3 className="mb-4 text-xl font-bold text-slate-900 dark:text-slate-50">
+                    <h3 className="mb-4 text-lg font-bold text-slate-900 dark:text-slate-50 sm:text-xl">
                       Informasi Layanan
                     </h3>
                     <div className="space-y-3">
@@ -338,7 +338,7 @@ const ServiceDetail = () => {
 
               {!isTteService && (
                 <div>
-                  <h3 className="mb-4 text-xl font-bold text-slate-900 dark:text-slate-50">
+                  <h3 className="mb-4 text-lg font-bold text-slate-900 dark:text-slate-50 sm:text-xl">
                     Field yang Diperlukan
                   </h3>
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -376,7 +376,7 @@ const ServiceDetail = () => {
                     <div className="mb-4 inline-flex items-center justify-center rounded-full bg-blue-100 p-4 dark:bg-blue-950/50">
                       <FileText className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <h3 className="mb-2 text-xl font-bold text-slate-900 dark:text-slate-50">
+                    <h3 className="mb-2 text-lg font-bold text-slate-900 dark:text-slate-50 sm:text-xl">
                       Ajukan Layanan
                     </h3>
 
@@ -419,7 +419,7 @@ const ServiceDetail = () => {
             {/* Help Card */}
             <Card className="border-slate-200/60 bg-white dark:border-slate-800/60 dark:bg-slate-900/50">
               <CardContent className="space-y-3 pt-6">
-                <h4 className="font-semibold text-slate-900 dark:text-slate-50">
+                <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:text-base">
                   Butuh Bantuan?
                 </h4>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
