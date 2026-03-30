@@ -1,6 +1,5 @@
 {
-  "/services/[id]/page": "app/services/[id]/page.js",
-  "/page": "app/page.js",
-  "/request/subdomain/page": "app/request/subdomain/page.js",
-  "/services/page": "app/services/page.js"
+  "/login/page": "app/login/page.js",
+  "/api/auth/opendata-login/route": "app/api/auth/opendata-login/route.js",
+  "/page": "app/page.js"
 }

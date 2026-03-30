@@ -18,7 +18,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (nip: string, password: string) => Promise<{ ok: boolean; message?: string }>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -48,47 +48,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(false);
   }, []);
 
-  // Login function - SIMPLE VERSION
-  // Nanti bisa diganti dengan API call ke backend
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ ok: boolean; message?: string }> => {
     setIsLoading(true);
 
     try {
-      // TODO: Replace dengan actual API call
-      // Untuk sekarang, simulasi delay + validasi simple
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const res = await fetch("/api/auth/opendata-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ uid: email, pid: password }),
+      });
+      const data = await res.json().catch(() => ({}));
 
-      // Validasi email domain
-      if (!email.endsWith("@tangerangkota.go.id")) {
+      if (!res.ok || data?.status === false) {
         setIsLoading(false);
-        return false;
-      }
-
-      // Simple password check (minimal 6 karakter)
-      if (password.length < 6) {
-        setIsLoading(false);
-        return false;
+        return { ok: false, message: data?.error || "NIP atau password salah" };
       }
 
       // Create user object
       const userData: User = {
         email: email,
-        name: email.split("@")[0], // Ambil nama dari email
-        nip: undefined, // Bisa diisi dari API nanti
-        avatar: undefined, // Bisa diisi dari API nanti
+        name: email,
+        nip: email,
+        avatar: undefined,
       };
 
       // Save to localStorage (hanya di client-side)
       if (typeof window !== 'undefined') {
         localStorage.setItem("helpdesk_user", JSON.stringify(userData));
+        if (data?.token) {
+          localStorage.setItem("helpdesk_token", String(data.token));
+        }
       }
       setUser(userData);
       setIsLoading(false);
-      return true;
+      return { ok: true };
     } catch (error) {
       console.error("Login error:", error);
       setIsLoading(false);
-      return false;
+      return { ok: false, message: "Gagal menghubungkan ke server" };
     }
   };
 

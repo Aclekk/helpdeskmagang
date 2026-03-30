@@ -47,23 +47,21 @@ const Login = () => {
 
     // Validasi input
     if (!email || !password) {
-      setError("Email dan password wajib diisi");
+      setError("NIP dan password wajib diisi");
       setIsLoading(false);
       return;
     }
 
     // Coba login
-    const success = await login(email, password);
+    const result = await login(email, password);
 
-    if (success) {
+    if (result.ok) {
       // Login berhasil - redirect ke halaman sebelumnya atau home
       localStorage.removeItem('redirectPath');
       router.push(from);
     } else {
       // Login gagal
-      setError(
-        "Email atau password salah. Pastikan menggunakan email @tangerangkota.go.id",
-      );
+      setError(result.message || "NIP atau password salah");
       setIsLoading(false);
     }
   };
@@ -104,13 +102,13 @@ const Login = () => {
                 </Alert>
               )}
 
-              {/* Email Field */}
+              {/* NIP Field */}
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="nip">NIP</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="nama@tangerangkota.go.id"
+                  id="nip"
+                  type="text"
+                  placeholder="Masukkan NIP"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
@@ -152,10 +150,7 @@ const Login = () => {
               </Button>
 
               {/* Info Text */}
-              <p className="text-center text-xs text-slate-500 dark:text-slate-400">
-                Hanya pegawai dengan email resmi @tangerangkota.go.id yang dapat
-                mengakses layanan ini
-              </p>
+              <p className="text-center text-xs text-slate-500 dark:text-slate-400">Gunakan NIP pegawai untuk login</p>
 
               {/* Back to Home */}
               <div className="text-center">
