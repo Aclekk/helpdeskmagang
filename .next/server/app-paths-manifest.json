@@ -1,8 +1,0 @@
-{
-  "/services/page": "app/services/page.js",
-  "/request/[id]/page": "app/request/[id]/page.js",
-  "/page": "app/page.js",
-  "/request/vpn/page": "app/request/vpn/page.js",
-  "/services/[id]/page": "app/services/[id]/page.js",
-  "/request/repository-git/page": "app/request/repository-git/page.js"
-}
