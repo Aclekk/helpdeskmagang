@@ -1,5 +1,6 @@
 {
   "/page": "app/page.js",
+  "/request/video-conference/history/page": "app/request/video-conference/history/page.js",
   "/services/[id]/page": "app/services/[id]/page.js",
-  "/request/[id]/page": "app/request/[id]/page.js"
+  "/api/teleconference/permohonan/[id]/route": "app/api/teleconference/permohonan/[id]/route.js"
 }

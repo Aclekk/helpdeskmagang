@@ -1,3 +1,5 @@
+"use client";
+
 import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,12 +16,9 @@ import {
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  checkPegawai,
-  submitPermohonan,
-  type PermohonanRequest,
-} from "@/lib/semantik";
 import { useToast } from "@/hooks/use-toast";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDateDDMMYYYY(date = new Date()) {
   const dd = String(date.getDate()).padStart(2, "0");
@@ -28,210 +27,337 @@ function formatDateDDMMYYYY(date = new Date()) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
+function toISODate(date = new Date()) {
+  return date.toISOString().split("T")[0];
+}
+
+function hitungWaktuSelesai(waktuMulai: string, durasiMenit: number): string {
+  if (!waktuMulai) return "";
+  const [h, m] = waktuMulai.split(":").map(Number);
+  const total = h * 60 + m + durasiMenit;
+  const hh = String(Math.floor(total / 60) % 24).padStart(2, "0");
+  const mm = String(total % 60).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
+// ─── Tipe data yang disimpan ke localStorage ──────────────────────────────────
+export interface LocalPermohonan {
+  semantikId?: number;
+  noTiket?: string;
+  requestDate: string;
+  tanggalPermohonan: string;
+  judulKegiatan: string;
+  tanggalPelaksanaan: string;
+  waktuMulai: string;
+  durasiMenit: number;
+  waktuSelesai: string;
+  jumlahPeserta: string;
+  instansi: string;
+  kodeUnor: string;
+  namaPemohon: string;
+  jabatanPemohon: string;
+  email: string;
+  nomorTelepon: string;
+  lokasiAcara: string;
+  perangkatDibutuhkan: string;
+  namaHost: string;
+  acaraBerulang: boolean;
+  pengulangan?: string;
+  ulangSetiap?: number;
+  hariMingguan?: string[];
+  jenisBerakhir?: string;
+  tanggalBerakhir?: string;
+  jumlahPenyelenggaraan?: number;
+  status: "menunggu" | "disetujui" | "ditolak" | "selesai";
+  linkZoom?: string;
+  lastSync?: string;
+}
+
+function saveToLocalStorage(item: LocalPermohonan) {
+  if (typeof window === "undefined") return;
+  try {
+    const stored = localStorage.getItem("video_conference_requests");
+    const list: LocalPermohonan[] = stored ? JSON.parse(stored) : [];
+    list.unshift(item);
+    localStorage.setItem("video_conference_requests", JSON.stringify(list));
+  } catch (e) {
+    console.error("Error saving to localStorage:", e);
+  }
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function VideoConferenceRequestForm() {
   const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
 
-  // refs untuk trigger date/time picker
   const tanggalRef = useRef<HTMLInputElement>(null);
   const waktuMulaiRef = useRef<HTMLInputElement>(null);
-  const waktuSelesaiRef = useRef<HTMLInputElement>(null);
 
-  // default request date (readonly)
   const requestDate = useMemo(() => formatDateDDMMYYYY(new Date()), []);
 
-  // Loading & error state
+  // ─── State UI ───────────────────────────────────────────────────────────────
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingPegawai, setIsCheckingPegawai] = useState(false);
   const [pegawaiError, setPegawaiError] = useState<string | null>(null);
 
-  // state
+  // ─── State Instansi ─────────────────────────────────────────────────────────
+  const [instansiList, setInstansiList] = useState<
+    { idUnor: string; namaUnor: string; kodeUnor: string }[]
+  >([]);
+  const [isLoadingInstansi, setIsLoadingInstansi] = useState(false);
+
+  // ─── State Form ─────────────────────────────────────────────────────────────
   const [judulKegiatan, setJudulKegiatan] = useState("");
-  const [tanggalPelaksanaan, setTanggalPelaksanaan] = useState(""); // yyyy-mm-dd
-  const [rapatBerulang, setRapatBerulang] = useState(false);
-
-  const [jumlahPeserta, setJumlahPeserta] = useState<string>("");
+  const [tanggalPelaksanaan, setTanggalPelaksanaan] = useState("");
+  const [durasiMenit, setDurasiMenit] = useState<number>(60);
+  const [acaraBerulang, setAcaraBerulang] = useState(false);
+  const [jumlahPeserta, setJumlahPeserta] = useState("");
   const [waktuMulai, setWaktuMulai] = useState("");
-  const [waktuSelesai, setWaktuSelesai] = useState("");
-
-  const [instansi, setInstansi] = useState<string>("");
-  const [kodeUnit, setKodeUnit] = useState("");
-
+  const [instansi, setInstansi] = useState("");
+  const [kodeUnor, setKodeUnor] = useState("");
   const [namaPemohon, setNamaPemohon] = useState("");
   const [jabatanPemohon, setJabatanPemohon] = useState("");
-
   const [email, setEmail] = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
+  const [nomorTelepon, setNomorTelepon] = useState("");
+  const [lokasiAcara, setLokasiAcara] = useState("");
+  const [perangkatDibutuhkan, setPerangkatDibutuhkan] = useState<string[]>([]);
+  const [namaHost, setNamaHost] = useState("");
+  const [jenisKegiatan, setJenisKegiatan] = useState("");
+  const [keterangan, setKeterangan] = useState("");
 
-  // Auto-fill nama dan whatsapp dari data login Semantic + cek pegawai API
+  // ─── State Recurrence ───────────────────────────────────────────────────────
+  type RepeatType = "harian" | "mingguan" | "bulanan";
+  type EndType = "date" | "count";
+  const [pengulangan, setPengulangan] = useState<RepeatType>("mingguan");
+  const [ulangSetiap, setUlangSetiap] = useState(1);
+  const [hariMingguan, setHariMingguan] = useState<string[]>([]);
+  const [jenisBerakhir, setJenisBerakhir] = useState<EndType>("date");
+  const [tanggalBerakhir, setTanggalBerakhir] = useState("");
+  const [jumlahPenyelenggaraan, setJumlahPenyelenggaraan] = useState(7);
+
+  const toggleHari = (h: string) =>
+    setHariMingguan((prev) =>
+      prev.includes(h) ? prev.filter((d) => d !== h) : [...prev, h],
+    );
+
+  const togglePerangkat = (p: string) =>
+    setPerangkatDibutuhkan((prev) =>
+      prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p],
+    );
+
+  // ─── useEffect: Fetch Instansi dari API ─────────────────────────────────────
   useEffect(() => {
-    const checkPegawaiData = async () => {
-      if (!user?.nip) return;
+    const fetchInstansi = async () => {
+      setIsLoadingInstansi(true);
+      try {
+        const res = await fetch("/api/instansi");
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setInstansiList(data);
+        }
+      } catch (err) {
+        console.error("Error fetch instansi:", err);
+      } finally {
+        setIsLoadingInstansi(false);
+      }
+    };
+    fetchInstansi();
+  }, []);
 
+  // ─── useEffect: Auto-fill dari checkPegawai ─────────────────────────────────
+  useEffect(() => {
+    if (!user?.nip) return;
+
+    const fetchPegawai = async () => {
       setIsCheckingPegawai(true);
       setPegawaiError(null);
-
       try {
-        const result = await checkPegawai(user.nip);
+        const res = await fetch("/api/pegawai/ceknip", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nip: user.nip }),
+        });
+        const result = await res.json();
+
         if (result.status && result.data) {
           setNamaPemohon(result.data.nama_pegawai || user.name || "");
-          setWhatsapp(result.data.whatsapp || user.whatsapp || "");
+          setNomorTelepon(result.data.whatsapp || user.whatsapp || "");
           setEmail(result.data.email || "");
-          setInstansi(result.data.unit_kerja || "");
           setJabatanPemohon(result.data.jabatan || "");
+          setKodeUnor(result.data.kode_unor || "");
+          // Auto-set instansi dari data pegawai
+          if (result.data.unit_kerja) {
+            setInstansi(result.data.unit_kerja);
+          }
         } else {
           setPegawaiError(result.message || "Data pegawai tidak ditemukan");
           setNamaPemohon(user.name || "");
-          setWhatsapp(user.whatsapp || "");
+          setNomorTelepon(user.whatsapp || "");
         }
-      } catch (error) {
-        console.error("Error checking pegawai:", error);
+      } catch (err) {
+        console.error("Error cek pegawai:", err);
         setPegawaiError("Gagal menghubungkan ke server Semantik");
         setNamaPemohon(user.name || "");
-        setWhatsapp(user.whatsapp || "");
+        setNomorTelepon(user.whatsapp || "");
       } finally {
         setIsCheckingPegawai(false);
       }
     };
 
-    checkPegawaiData();
+    fetchPegawai();
   }, [user]);
 
-  // Handler untuk trigger date/time picker saat field diklik
   const handleFieldClick = (ref: React.RefObject<HTMLInputElement>) => {
     ref.current?.showPicker();
   };
 
-  const [lokasiAcara, setLokasiAcara] = useState("");
-  const [perangkatDibutuhkan, setPerangkatDibutuhkan] = useState<string[]>([]);
-  const [namaHost, setNamaHost] = useState("");
+  const pesertaOptions = [
+    { value: "1-300", label: "1 - 300" },
+    { value: "300-1000", label: "300 - 1000" },
+  ];
 
-  // Toggle perangkat selection
-  const togglePerangkat = (perangkat: string) => {
-    setPerangkatDibutuhkan((prev) =>
-      prev.includes(perangkat)
-        ? prev.filter((p) => p !== perangkat)
-        : [...prev, perangkat]
-    );
-  };
-
-  // ====== Rapat berulang (recurrence) ======
-  type RepeatType = "daily" | "weekly" | "monthly";
-  type EndType = "on" | "after";
-
-  const [repeatType, setRepeatType] = useState<RepeatType>("weekly");
-  const [repeatEvery, setRepeatEvery] = useState<number>(1);
-
-  const [repeatOnDays, setRepeatOnDays] = useState<string[]>([]);
-  const toggleDay = (day: string) => {
-    setRepeatOnDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
-    );
-  };
-
-  const [endType, setEndType] = useState<EndType>("on");
-  const [endOnDate, setEndOnDate] = useState<string>("");
-  const [endAfterCount, setEndAfterCount] = useState<number>(7);
+  const durasiOptions = [
+    { value: 30, label: "30 menit" },
+    { value: 60, label: "1 jam" },
+    { value: 90, label: "1 jam 30 menit" },
+    { value: 120, label: "2 jam" },
+    { value: 180, label: "3 jam" },
+    { value: 240, label: "4 jam" },
+  ];
 
   const repeatUnitLabel =
-    repeatType === "daily" ? "hari" : repeatType === "weekly" ? "minggu" : "bulan";
+    pengulangan === "harian"
+      ? "hari"
+      : pengulangan === "mingguan"
+        ? "minggu"
+        : "bulan";
 
-  const instansiOptions = useMemo(
-    () => [
-      "Diskominfo Kota Tangerang",
-      "Dinas Pendidikan",
-      "Dinas Kesehatan",
-      "Kecamatan",
-      "Kelurahan",
-      "OPD Lainnya",
-    ],
-    []
-  );
-
-  const pesertaOptions = useMemo(
-    () => [
-      { value: "1-300", label: "1 - 300" },
-      { value: "300-1000", label: "300 - 1000" },
-    ],
-    []
-  );
-
+  // ─── Submit ──────────────────────────────────────────────────────────────────
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Generate external_id (unique identifier)
-    const externalId = `ZC-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
-    const payload: PermohonanRequest = {
-      external_id: externalId,
-      judul_kegiatan: judulKegiatan,
-      tanggal_pelaksanaan: tanggalPelaksanaan,
-      waktu_mulai: waktuMulai,
-      waktu_selesai: waktuSelesai || undefined,
-      jumlah_peserta: jumlahPeserta,
-      instansi: instansi,
-      kode_unit: kodeUnit || undefined,
-      nama_pemohon: namaPemohon,
-      jabatan_pemohon: jabatanPemohon,
-      email: email,
-      whatsapp: whatsapp || undefined,
-      lokasi_acara: lokasiAcara || undefined,
-      perangkat_dibutuhkan: perangkatDibutuhkan.length > 0 ? perangkatDibutuhkan : undefined,
-      nama_host: namaHost || undefined,
-      rapat_berulang: rapatBerulang,
-      recurrence: rapatBerulang
-        ? {
-            repeat_type: repeatType,
-            repeat_every: repeatEvery,
-            repeat_on_days: repeatType === "weekly" ? repeatOnDays : undefined,
-            end_type: endType,
-            end_on_date: endType === "on" ? endOnDate : undefined,
-            end_after_count: endType === "after" ? endAfterCount : undefined,
-          }
-        : null,
-    };
-
     setIsSubmitting(true);
 
+    const todayISO = toISODate(new Date());
+
+    const payload = {
+      tanggalPermohonan: todayISO,
+      instansi,
+      kodeUnor: kodeUnor || undefined,
+      namaPemohon,
+      jabatanPemohon,
+      email,
+      nomorTelepon: nomorTelepon || undefined,
+      judulKegiatan,
+      lokasiAcara: lokasiAcara || undefined,
+      tanggalPelaksanaan,
+      waktuMulai,
+      durasiMenit,
+      jumlahPeserta,
+      perangkatDibutuhkan:
+        perangkatDibutuhkan.length > 0
+          ? perangkatDibutuhkan.join(", ")
+          : undefined,
+      jenisKegiatan: jenisKegiatan || undefined,
+      keterangan: keterangan || undefined,
+      acaraBerulang,
+      ...(acaraBerulang && {
+        pengulangan,
+        ulangSetiap,
+        hariMingguan: pengulangan === "mingguan" ? hariMingguan : undefined,
+        jenisBerakhir,
+        tanggalBerakhir: jenisBerakhir === "date" ? tanggalBerakhir : undefined,
+        jumlahPenyelenggaraan:
+          jenisBerakhir === "count" ? jumlahPenyelenggaraan : undefined,
+      }),
+    };
+
     try {
-      const result = await submitPermohonan(payload);
+      const res = await fetch("/api/teleconference/permohonan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-      if (result.status) {
-        toast({
-          title: "Permohonan Berhasil!",
-          description: `ID Permohonan: ${externalId}. Tunggu konfirmasi dari admin.`,
-        });
+      const result = await res.json();
 
-        // Reset form setelah sukses
-        setJudulKegiatan("");
-        setTanggalPelaksanaan("");
-        setJumlahPeserta("");
-        setWaktuMulai("");
-        setWaktuSelesai("");
-        setKodeUnit("");
-        setJabatanPemohon("");
-        setEmail("");
-        setWhatsapp("");
-        setLokasiAcara("");
-        setPerangkatDibutuhkan([]);
-        setNamaHost("");
-        setRapatBerulang(false);
-
-        // Redirect ke history
-        router.push("/request/video-conference/history");
-      } else {
-        toast({
-          title: "Permohonan Gagal",
-          description: result.message || "Terjadi kesalahan saat mengirim permohonan",
-          variant: "destructive",
-        });
+      if (!res.ok) {
+        throw new Error(result.message || "Gagal mengirim permohonan");
       }
+
+      const semantikId: number | undefined = result.id ?? result.data?.id;
+      const noTiket: string | undefined =
+        result.noTiket ?? result.data?.noTiket;
+
+      const localItem: LocalPermohonan = {
+        semantikId,
+        noTiket,
+        requestDate: new Date().toISOString(),
+        tanggalPermohonan: todayISO,
+        judulKegiatan,
+        tanggalPelaksanaan,
+        waktuMulai,
+        durasiMenit,
+        waktuSelesai: hitungWaktuSelesai(waktuMulai, durasiMenit),
+        jumlahPeserta,
+        instansi,
+        kodeUnor,
+        namaPemohon,
+        jabatanPemohon,
+        email,
+        nomorTelepon,
+        lokasiAcara,
+        perangkatDibutuhkan: perangkatDibutuhkan.join(", "),
+        namaHost,
+        acaraBerulang,
+        ...(acaraBerulang && {
+          pengulangan,
+          ulangSetiap,
+          hariMingguan: pengulangan === "mingguan" ? hariMingguan : [],
+          jenisBerakhir,
+          tanggalBerakhir:
+            jenisBerakhir === "date" ? tanggalBerakhir : undefined,
+          jumlahPenyelenggaraan:
+            jenisBerakhir === "count" ? jumlahPenyelenggaraan : undefined,
+        }),
+        status: "menunggu",
+        lastSync: new Date().toISOString(),
+      };
+
+      saveToLocalStorage(localItem);
+
+      toast({
+        title: "Permohonan Berhasil Dikirim! 🎉",
+        description: noTiket
+          ? `No. Tiket: ${noTiket}. Tunggu konfirmasi dari admin.`
+          : "Permohonan kamu sudah masuk ke Semantik.",
+      });
+
+      // Reset form
+      setJudulKegiatan("");
+      setTanggalPelaksanaan("");
+      setJumlahPeserta("");
+      setWaktuMulai("");
+      setDurasiMenit(60);
+      setKodeUnor("");
+      setJabatanPemohon("");
+      setEmail("");
+      setNomorTelepon("");
+      setLokasiAcara("");
+      setPerangkatDibutuhkan([]);
+      setNamaHost("");
+      setAcaraBerulang(false);
+      setJenisKegiatan("");
+      setKeterangan("");
+
+      router.push("/request/video-conference/history");
     } catch (error) {
-      console.error("Error submitting permohonan:", error);
+      console.error("Submit error:", error);
       toast({
         title: "Permohonan Gagal",
-        description: error instanceof Error ? error.message : "Gagal menghubungi server",
+        description:
+          error instanceof Error ? error.message : "Gagal menghubungi server",
         variant: "destructive",
       });
     } finally {
@@ -239,6 +365,7 @@ export default function VideoConferenceRequestForm() {
     }
   };
 
+  // ─── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -246,7 +373,10 @@ export default function VideoConferenceRequestForm() {
           Video Conference Zoom
         </h1>
         <Link href="/request/video-conference/history">
-          <Button variant="outline" className="flex items-center gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300">
+          <Button
+            variant="outline"
+            className="flex items-center gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300"
+          >
             <History className="h-4 w-4" />
             Riwayat Permohonan
           </Button>
@@ -285,7 +415,7 @@ export default function VideoConferenceRequestForm() {
               />
             </div>
 
-            {/* Tanggal Pelaksanaan + Rapat berulang */}
+            {/* Tanggal Pelaksanaan + Acara Berulang */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
               <div className="md:col-span-6 space-y-2">
                 <label className="font-semibold text-slate-900 dark:text-slate-50">
@@ -301,24 +431,21 @@ export default function VideoConferenceRequestForm() {
                   className="cursor-pointer"
                 />
               </div>
-
               <div className="md:col-span-6 flex items-end">
                 <label className="flex items-center gap-3 text-slate-900 dark:text-slate-50">
                   <Checkbox
-                    checked={rapatBerulang}
-                    onCheckedChange={(v) => setRapatBerulang(Boolean(v))}
+                    checked={acaraBerulang}
+                    onCheckedChange={(v) => setAcaraBerulang(Boolean(v))}
                   />
-                  <span className="font-medium">Rapat berulang</span>
+                  <span className="font-medium">Acara berulang</span>
                 </label>
               </div>
             </div>
 
-            {/* Recurrence Section */}
-            {rapatBerulang && (
+            {/* Recurrence */}
+            {acaraBerulang && (
               <div className="relative rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800/90">
-                {/* Garis biru kiri */}
                 <div className="absolute left-0 top-0 h-full w-1.5 rounded-l-xl bg-blue-600" />
-
                 <div className="space-y-5 pl-4">
                   {/* Pengulangan */}
                   <div className="grid grid-cols-1 items-center gap-4 md:grid-cols-12">
@@ -327,16 +454,16 @@ export default function VideoConferenceRequestForm() {
                     </div>
                     <div className="md:col-span-9">
                       <Select
-                        value={repeatType}
-                        onValueChange={(v) => setRepeatType(v as RepeatType)}
+                        value={pengulangan}
+                        onValueChange={(v) => setPengulangan(v as RepeatType)}
                       >
                         <SelectTrigger className="w-full md:w-[340px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="daily">Harian</SelectItem>
-                          <SelectItem value="weekly">Mingguan</SelectItem>
-                          <SelectItem value="monthly">Bulanan</SelectItem>
+                          <SelectItem value="harian">Harian</SelectItem>
+                          <SelectItem value="mingguan">Mingguan</SelectItem>
+                          <SelectItem value="bulanan">Bulanan</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -347,40 +474,36 @@ export default function VideoConferenceRequestForm() {
                     <div className="font-medium text-slate-900 dark:text-slate-50 md:col-span-3">
                       Ulangi setiap
                     </div>
-
                     <div className="md:col-span-4">
                       <Select
-                        value={String(repeatEvery)}
-                        onValueChange={(v) => setRepeatEvery(Number(v))}
+                        value={String(ulangSetiap)}
+                        onValueChange={(v) => setUlangSetiap(Number(v))}
                       >
                         <SelectTrigger className="w-full md:w-[220px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {Array.from({ length: 30 }).map((_, i) => {
-                            const val = i + 1;
-                            return (
-                              <SelectItem key={val} value={String(val)}>
-                                {val}
+                          {Array.from({ length: 30 }, (_, i) => i + 1).map(
+                            (v) => (
+                              <SelectItem key={v} value={String(v)}>
+                                {v}
                               </SelectItem>
-                            );
-                          })}
+                            ),
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
-
                     <div className="text-slate-900 dark:text-slate-50 md:col-span-5">
                       {repeatUnitLabel}
                     </div>
                   </div>
 
-                  {/* Terjadi pada (muncul kalau Mingguan) */}
-                  {repeatType === "weekly" && (
+                  {/* Hari (mingguan) */}
+                  {pengulangan === "mingguan" && (
                     <div className="grid grid-cols-1 items-center gap-4 md:grid-cols-12">
                       <div className="font-medium text-slate-900 dark:text-slate-50 md:col-span-3">
                         Terjadi pada
                       </div>
-
                       <div className="flex flex-wrap gap-5 md:col-span-9">
                         {[
                           ["sun", "Minggu"],
@@ -393,8 +516,8 @@ export default function VideoConferenceRequestForm() {
                         ].map(([val, label]) => (
                           <label key={val} className="flex items-center gap-2">
                             <Checkbox
-                              checked={repeatOnDays.includes(val as string)}
-                              onCheckedChange={() => toggleDay(val as string)}
+                              checked={hariMingguan.includes(val)}
+                              onCheckedChange={() => toggleHari(val)}
                             />
                             <span className="text-slate-700 dark:text-slate-200">
                               {label}
@@ -408,64 +531,59 @@ export default function VideoConferenceRequestForm() {
                   {/* Tanggal berakhir */}
                   <div className="grid grid-cols-1 items-center gap-4 md:grid-cols-12">
                     <div className="font-medium text-slate-900 dark:text-slate-50 md:col-span-3">
-                      Tanggal berakhir
+                      Berakhir
                     </div>
-
                     <div className="space-y-3 md:col-span-9">
-                      {/* Pada (tanggal) */}
                       <label className="flex flex-wrap items-center gap-3">
                         <input
                           type="radio"
                           name="endType"
-                          checked={endType === "on"}
-                          onChange={() => setEndType("on")}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 dark:text-blue-500 dark:focus:ring-blue-600"
+                          checked={jenisBerakhir === "date"}
+                          onChange={() => setJenisBerakhir("date")}
+                          className="h-4 w-4 text-blue-600"
                         />
                         <span className="text-slate-900 dark:text-slate-50">
-                          Pada
+                          Pada tanggal
                         </span>
                         <Input
                           type="date"
                           className="w-full sm:w-[220px]"
-                          value={endOnDate}
-                          onChange={(e) => setEndOnDate(e.target.value)}
-                          disabled={endType !== "on"}
+                          value={tanggalBerakhir}
+                          onChange={(e) => setTanggalBerakhir(e.target.value)}
+                          disabled={jenisBerakhir !== "date"}
                         />
                       </label>
-
-                      {/* Setelah (N penyelenggaraan) */}
                       <label className="flex flex-wrap items-center gap-3">
                         <input
                           type="radio"
                           name="endType"
-                          checked={endType === "after"}
-                          onChange={() => setEndType("after")}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 dark:text-blue-500 dark:focus:ring-blue-600"
+                          checked={jenisBerakhir === "count"}
+                          onChange={() => setJenisBerakhir("count")}
+                          className="h-4 w-4 text-blue-600"
                         />
                         <span className="text-slate-900 dark:text-slate-50">
                           Setelah
                         </span>
-
                         <Select
-                          value={String(endAfterCount)}
-                          onValueChange={(v) => setEndAfterCount(Number(v))}
-                          disabled={endType !== "after"}
+                          value={String(jumlahPenyelenggaraan)}
+                          onValueChange={(v) =>
+                            setJumlahPenyelenggaraan(Number(v))
+                          }
+                          disabled={jenisBerakhir !== "count"}
                         >
                           <SelectTrigger className="w-full sm:w-[140px]">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {Array.from({ length: 50 }).map((_, i) => {
-                              const val = i + 1;
-                              return (
-                                <SelectItem key={val} value={String(val)}>
-                                  {val}
+                            {Array.from({ length: 50 }, (_, i) => i + 1).map(
+                              (v) => (
+                                <SelectItem key={v} value={String(v)}>
+                                  {v}
                                 </SelectItem>
-                              );
-                            })}
+                              ),
+                            )}
                           </SelectContent>
                         </Select>
-
                         <span className="text-slate-900 dark:text-slate-50">
                           penyelenggaraan
                         </span>
@@ -495,7 +613,7 @@ export default function VideoConferenceRequestForm() {
               </Select>
             </div>
 
-            {/* Waktu Mulai & Selesai */}
+            {/* Waktu Mulai & Durasi */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
               <div className="md:col-span-6 space-y-2">
                 <label className="font-semibold text-slate-900 dark:text-slate-50">
@@ -513,52 +631,91 @@ export default function VideoConferenceRequestForm() {
               </div>
               <div className="md:col-span-6 space-y-2">
                 <label className="font-semibold text-slate-900 dark:text-slate-50">
-                  Waktu Selesai
+                  Durasi <span className="text-red-500">*</span>
                 </label>
-                <Input
-                  ref={waktuSelesaiRef}
-                  type="time"
-                  value={waktuSelesai}
-                  onChange={(e) => setWaktuSelesai(e.target.value)}
-                  onClick={() => handleFieldClick(waktuSelesaiRef)}
-                  className="cursor-pointer"
-                />
+                <Select
+                  value={String(durasiMenit)}
+                  onValueChange={(v) => setDurasiMenit(Number(v))}
+                >
+                  <SelectTrigger className="h-12 rounded-xl">
+                    <SelectValue placeholder="Pilih durasi" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {durasiOptions.map((o) => (
+                      <SelectItem key={o.value} value={String(o.value)}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {waktuMulai && (
+                  <p className="text-xs text-slate-500">
+                    Selesai sekitar pukul{" "}
+                    {hitungWaktuSelesai(waktuMulai, durasiMenit)}
+                  </p>
+                )}
               </div>
             </div>
 
-            {/* Instansi & Kode unit */}
+            {/* Instansi & Kode Unor */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
               <div className="md:col-span-6 space-y-2">
                 <label className="font-semibold text-slate-900 dark:text-slate-50">
                   Instansi <span className="text-red-500">*</span>
                 </label>
-                <Select value={instansi} onValueChange={setInstansi} required>
+                <Select
+                  value={instansi}
+                  onValueChange={(val) => {
+                    setInstansi(val);
+                    // Auto-fill kodeUnor dari instansi yang dipilih
+                    const selected = instansiList.find(
+                      (i) => i.namaUnor === val,
+                    );
+                    if (selected) setKodeUnor(selected.kodeUnor);
+                  }}
+                  required
+                >
                   <SelectTrigger className="h-12 rounded-xl">
-                    <SelectValue placeholder="Pilih Instansi" />
+                    <SelectValue
+                      placeholder={
+                        isLoadingInstansi
+                          ? "Memuat instansi..."
+                          : "Pilih Instansi"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    {instansiOptions.map((opt) => (
-                      <SelectItem key={opt} value={opt}>
-                        {opt}
+                    {isLoadingInstansi ? (
+                      <SelectItem value="_loading" disabled>
+                        Memuat data instansi...
                       </SelectItem>
-                    ))}
+                    ) : instansiList.length > 0 ? (
+                      instansiList.map((item) => (
+                        <SelectItem key={item.idUnor} value={item.namaUnor}>
+                          {item.namaUnor}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="_empty" disabled>
+                        Tidak ada data instansi
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="md:col-span-6 space-y-2">
                 <label className="font-semibold text-slate-900 dark:text-slate-50">
-                  Kode unit organisasi (opsional)
+                  Kode Unit Organisasi (opsional)
                 </label>
                 <Input
-                  value={kodeUnit}
-                  onChange={(e) => setKodeUnit(e.target.value)}
-                  placeholder="Kode unit organisasi (opsional)"
+                  value={kodeUnor}
+                  onChange={(e) => setKodeUnor(e.target.value)}
+                  placeholder="Kode unit organisasi"
                 />
               </div>
             </div>
 
-            {/* Nama Pemohon & Jabatan Pemohon */}
+            {/* Nama Pemohon & Jabatan */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
               <div className="md:col-span-6 space-y-2">
                 <label className="font-semibold text-slate-900 dark:text-slate-50">
@@ -580,7 +737,6 @@ export default function VideoConferenceRequestForm() {
                   <p className="text-xs text-amber-600">{pegawaiError}</p>
                 )}
               </div>
-
               <div className="md:col-span-6 space-y-2">
                 <label className="font-semibold text-slate-900 dark:text-slate-50">
                   Jabatan Pemohon <span className="text-red-500">*</span>
@@ -594,7 +750,7 @@ export default function VideoConferenceRequestForm() {
               </div>
             </div>
 
-            {/* Email & Whatsapp */}
+            {/* Email */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
               <div className="md:col-span-6 space-y-2">
                 <label className="font-semibold text-slate-900 dark:text-slate-50">
@@ -609,18 +765,18 @@ export default function VideoConferenceRequestForm() {
               </div>
             </div>
 
-            {/* Whatsapp */}
+            {/* No. Telepon / WhatsApp */}
             <div className="space-y-2">
               <label className="font-semibold text-slate-900 dark:text-slate-50">
-                No. Whatsapp
+                No. WhatsApp / Telepon
               </label>
               <Input
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
+                value={nomorTelepon}
+                onChange={(e) => setNomorTelepon(e.target.value)}
                 placeholder="Masukkan nomor WhatsApp"
               />
               <p className="text-sm text-red-500">
-                Harap pastikan nomor tersebut aktif dan terdaftar di WhatsApp. Jika sudah tidak aktif, silakan diperbaharui.
+                Harap pastikan nomor tersebut aktif dan terdaftar di WhatsApp.
               </p>
             </div>
 
@@ -635,24 +791,24 @@ export default function VideoConferenceRequestForm() {
               />
             </div>
 
-            {/* Perangkat dibutuhkan */}
+            {/* Perangkat */}
             <div className="space-y-2">
               <label className="font-semibold text-slate-900 dark:text-slate-50">
-                Perangkat Yang dibutuhkan
+                Perangkat Yang Dibutuhkan
               </label>
               <div className="flex flex-wrap gap-6">
                 {[
-                  ["Pendampingan personil", "Pendampingan personil"],
-                  ["Alat teleconference", "Alat teleconference"],
-                  ["Hanya akun zoom", "Hanya akun zoom"],
-                ].map(([val, label]) => (
-                  <label key={val} className="flex items-center gap-2">
+                  "Pendampingan personil",
+                  "Alat teleconference",
+                  "Hanya akun zoom",
+                ].map((p) => (
+                  <label key={p} className="flex items-center gap-2">
                     <Checkbox
-                      checked={perangkatDibutuhkan.includes(val)}
-                      onCheckedChange={() => togglePerangkat(val)}
+                      checked={perangkatDibutuhkan.includes(p)}
+                      onCheckedChange={() => togglePerangkat(p)}
                     />
                     <span className="text-slate-700 dark:text-slate-200">
-                      {label}
+                      {p}
                     </span>
                   </label>
                 ))}
@@ -671,13 +827,36 @@ export default function VideoConferenceRequestForm() {
               />
             </div>
 
+            {/* Jenis Kegiatan & Keterangan */}
+            <div className="space-y-2">
+              <label className="font-semibold text-slate-900 dark:text-slate-50">
+                Jenis Kegiatan (opsional)
+              </label>
+              <Input
+                value={jenisKegiatan}
+                onChange={(e) => setJenisKegiatan(e.target.value)}
+                placeholder="Contoh: Rapat, Webinar, Pelatihan"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="font-semibold text-slate-900 dark:text-slate-50">
+                Keterangan (opsional)
+              </label>
+              <textarea
+                className="min-h-[84px] w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-50"
+                value={keterangan}
+                onChange={(e) => setKeterangan(e.target.value)}
+                placeholder="Informasi tambahan (opsional)"
+              />
+            </div>
+
             <div className="flex justify-end pt-2">
               <Button
                 type="submit"
                 disabled={isSubmitting || isCheckingPegawai}
                 className="h-12 px-8 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? "Mengirim..." : "Kirim"}
+                {isSubmitting ? "Mengirim..." : "Kirim Permohonan"}
               </Button>
             </div>
           </form>

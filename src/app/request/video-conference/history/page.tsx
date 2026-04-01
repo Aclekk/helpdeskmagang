@@ -1,29 +1,34 @@
-import dynamic from "next/dynamic"
-import AppLayout from "@/components/layout/AppLayout"
-import ProtectedRoute from "@/components/auth/ProtectedRoute"
-import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
-import { useEffect, useState } from "react"
+"use client";
 
-const VideoConferenceHistory = dynamic(() => import("@/components/services/VideoConferenceHistory"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex items-center justify-center p-8">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-slate-600">Memuat data riwayat...</p>
+import dynamic from "next/dynamic";
+import AppLayout from "@/components/layout/AppLayout";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+
+const VideoConferenceHistory = dynamic(
+  () => import("@/components/services/VideoConferenceHistory"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Memuat data riwayat...</p>
+        </div>
       </div>
-    </div>
-  )
-})
+    ),
+  },
+);
 
 export default function VideoConferenceHistoryPage() {
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Clear error on mount
-    setError(null)
-  }, [])
+    setError(null);
+  }, []);
 
   if (error) {
     return (
@@ -31,8 +36,10 @@ export default function VideoConferenceHistoryPage() {
         <ProtectedRoute>
           <div className="container py-10">
             <div className="text-center p-8">
-              <div className="text-red-600 mb-4">Terjadi kesalahan: {error}</div>
-              <button 
+              <div className="text-red-600 mb-4">
+                Terjadi kesalahan: {error}
+              </div>
+              <button
                 onClick={() => setError(null)}
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
               >
@@ -42,7 +49,7 @@ export default function VideoConferenceHistoryPage() {
           </div>
         </ProtectedRoute>
       </AppLayout>
-    )
+    );
   }
 
   return (
@@ -62,5 +69,5 @@ export default function VideoConferenceHistoryPage() {
         </div>
       </ProtectedRoute>
     </AppLayout>
-  )
+  );
 }

@@ -1,14 +1,15 @@
 /**
  * Semantik API Client
  *
- * API Endpoints:
- * - OIDC Token: POST /realms/semantik/protocol/openid-connect/token
- * - Cek Pegawai: POST {api_base_url}/pegawai/ceknip
- * - Kirim Permohonan: POST {api_base_url}/teleconference/permohonan
- * - Detail Permohonan: GET {api_base_url}/teleconference/permohonan/{external_id}
+ * Endpoints yang digunakan:
+ * - OIDC Token  : POST https://auth.tangerangkota.go.id/realms/semantik/protocol/openid-connect/token
+ * - Cek Pegawai : POST {api_base_url}/pegawai/ceknip
+ * - Submit Permohonan : POST {api_base_url}/teleconference/permohonan
+ * - Get Permohonan by ID : GET {api_base_url}/teleconference/permohonan/{id}
+ * - Get All Permohonan : GET {api_base_url}/teleconference/permohonan
  */
 
-// ─── Types ──────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface SemantikTokenResponse {
   access_token: string;
@@ -19,114 +20,153 @@ export interface SemantikTokenResponse {
 }
 
 export interface PegawaiResponse {
-  status: boolean;
+  status?: boolean;
+  message?: string;
+  // Field langsung dari OpenData/Semantik
+  id?: string;
+  id_pegawai?: string;
+  nip?: string;
+  nip_baru?: string;
+  nama_pegawai?: string;
+  nomenklatur_jabatan?: string;
+  kode_unor?: string;
+  nama_unor?: string;
+  nomor_hp?: string;
+  email?: string;
+  foto?: string;
+  // fallback wrapped response
   data?: {
-    nip: string;
-    nama_pegawai: string;
-    unit_kerja: string;
-    jabatan: string;
+    nama_pegawai?: string;
     whatsapp?: string;
     email?: string;
+    unit_kerja?: string;
+    jabatan?: string;
+    kode_unor?: string;
+    nip?: string;
   };
-  message?: string;
 }
 
+// ─── Request body untuk POST /teleconference/permohonan ──────────────────────
 export interface PermohonanRequest {
-  external_id: string;
-  judul_kegiatan: string;
-  tanggal_pelaksanaan: string; // YYYY-MM-DD
-  waktu_mulai: string; // HH:mm
-  waktu_selesai?: string; // HH:mm
-  jumlah_peserta: string;
+  tanggalPermohonan: string; // "YYYY-MM-DD"
   instansi: string;
-  kode_unit?: string;
-  nama_pemohon: string;
-  jabatan_pemohon: string;
+  kodeUnor?: string;
+  namaPemohon: string;
+  jabatanPemohon: string;
   email: string;
-  whatsapp?: string;
-  lokasi_acara?: string;
-  perangkat_dibutuhkan?: string[];
-  nama_host?: string;
-  rapat_berulang?: boolean;
-  recurrence?: {
-    repeat_type: "daily" | "weekly" | "monthly";
-    repeat_every: number;
-    repeat_on_days?: string[];
-    end_type: "on" | "after";
-    end_on_date?: string;
-    end_after_count?: number;
-  } | null;
+  nomorTelepon?: string;
+  judulKegiatan: string;
+  lokasiAcara?: string;
+  tanggalPelaksanaan: string; // "YYYY-MM-DD"
+  waktuMulai: string; // "HH:mm"
+  durasiMenit: number;
+  jumlahPeserta: string;
+  perangkatDibutuhkan?: string;
+  jenisKegiatan?: string;
+  keterangan?: string;
+  acaraBerulang: boolean;
+  pengulangan?: "harian" | "mingguan" | "bulanan";
+  ulangSetiap?: number;
+  hariMingguan?: string[];
+  jenisBerakhir?: "date" | "count";
+  tanggalBerakhir?: string;
+  jumlahPenyelenggaraan?: number;
 }
 
+// ─── Response POST /teleconference/permohonan ────────────────────────────────
 export interface PermohonanResponse {
-  status: boolean;
-  data?: {
-    external_id: string;
-    id_permohonan: string;
-    status: "menunggu" | "disetujui" | "ditolak" | "selesai";
-    jadwal?: {
-      link_zoom?: string;
-      meeting_id?: string;
-      passcode?: string;
-    }[];
-  };
+  id?: number;
+  noTiket?: string;
+  status?: string;
   message?: string;
+  // fallback jika server wrap dalam { status, data }
+  data?: {
+    id?: number;
+    noTiket?: string;
+    status?: string;
+  };
 }
 
-export interface PermohonanDetailResponse {
-  status: boolean;
-  data?: {
-    external_id: string;
-    id_permohonan: string;
-    status: "menunggu" | "disetujui" | "ditolak" | "selesai";
-    judul_kegiatan: string;
-    tanggal_pelaksanaan: string;
-    waktu_mulai: string;
-    waktu_selesai?: string;
-    jumlah_peserta: string;
-    instansi: string;
-    kode_unit?: string;
-    nama_pemohon: string;
-    jabatan_pemohon: string;
-    email: string;
-    whatsapp?: string;
-    lokasi_acara?: string;
-    perangkat_dibutuhkan?: string[];
-    nama_host?: string;
-    rapat_berulang?: boolean;
-    jadwal?: {
-      link_zoom?: string;
-      meeting_id?: string;
-      passcode?: string;
-    }[];
-  };
-  message?: string;
+// ─── Response GET /teleconference/permohonan/{id} ────────────────────────────
+export interface JadwalItem {
+  id: number;
+  permohonanId: number;
+  tanggal: string;
+  waktuMulai: string;
+  waktuSelesai: string;
+  linkZoom?: string;
+  hostEmail?: string;
+  hostUserId?: string;
+  status: string;
 }
 
-// ─── Config ──────────────────────────────────────────────────────────────────
+export interface PermohonanDetail {
+  id: number;
+  noTiket: string;
+  tanggalPermohonan: string;
+  instansi: string;
+  kodeUnor?: string;
+  namaPemohon: string;
+  jabatanPemohon: string;
+  email: string;
+  nomorTelepon?: string;
+  judulKegiatan: string;
+  lokasiAcara?: string;
+  tanggalMulai: string;
+  waktuMulai: string;
+  durasiMenit: number;
+  jumlahPeserta: string;
+  perangkatDibutuhkan?: string;
+  jenisKegiatan?: string;
+  keterangan?: string;
+  status: "menunggu" | "disetujui" | "ditolak" | "selesai" | string;
+  isRecurring: boolean;
+  recurrenceFreq?: string;
+  recurrenceInterval?: number;
+  recurrenceDays?: string;
+  recurrenceEndType?: string;
+  recurrenceEndDate?: string;
+  recurrenceCount?: number;
+  createdAt: string;
+  updatedAt: string;
+  jadwal: JadwalItem[];
+}
+export interface InstansiItem {
+  idUnor: string;
+  jenis: string;
+  namaUnor: string;
+  namaUnorAlias?: string;
+  kodeUnor: string;
+  kodeEse?: string;
+  namaEse?: string;
+}
+export async function getAllInstansi(): Promise<InstansiItem[]> {
+  return semantikFetch<InstansiItem[]>("/instansi");
+}
 
+// ─── Config ───────────────────────────────────────────────────────────────────
+// Semua env tanpa NEXT_PUBLIC_ agar tidak bocor ke browser.
+// Gunakan di server-side (API Routes) saja.
 const SEMANTIK_CONFIG = {
-  openidConfigUrl: process.env.NEXT_PUBLIC_SEMANTIK_OPENID_CONFIG_URL,
-  tokenEndpoint: "https://auth.tangerangkota.go.id/realms/semantik/protocol/openid-connect/token",
-  apiBaseUrl: process.env.NEXT_PUBLIC_SEMANTIK_API_BASE_URL,
-  clientId: process.env.NEXT_PUBLIC_SEMANTIK_CLIENT_ID,
-  clientSecret: process.env.NEXT_PUBLIC_SEMANTIK_CLIENT_SECRET,
-  username: process.env.NEXT_PUBLIC_SEMANTIK_USERNAME,
-  password: process.env.NEXT_PUBLIC_SEMANTIK_PASSWORD,
+  tokenEndpoint:
+    "https://auth.tangerangkota.go.id/realms/semantik/protocol/openid-connect/token",
+  apiBaseUrl: process.env.SEMANTIK_API_BASE_URL,
+  clientId: process.env.SEMANTIK_CLIENT_ID,
+  clientSecret: process.env.SEMANTIK_CLIENT_SECRET,
+  username: process.env.SEMANTIK_USERNAME,
+  password: process.env.SEMANTIK_PASSWORD,
 };
 
-// ─── Token Management ────────────────────────────────────────────────────────
-
+// ─── Token Cache (server-side only) ─────────────────────────────────────────
 let cachedToken: string | null = null;
 let tokenExpiry: number = 0;
 
 /**
- * Get Semantik OIDC token using Keycloak
- * Caches token until expiry
+ * Ambil OIDC token dari Keycloak Semantik.
+ * Token di-cache sampai hampir expired (buffer 30 detik).
  */
 export async function getSemantikToken(): Promise<string> {
-  // Return cached token if still valid (with 30s buffer)
-  if (cachedToken && Date.now() < tokenExpiry - 30000) {
+  if (cachedToken && Date.now() < tokenExpiry - 30_000) {
     return cachedToken;
   }
 
@@ -134,49 +174,44 @@ export async function getSemantikToken(): Promise<string> {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      "Accept": "application/json",
+      Accept: "application/json",
     },
     body: new URLSearchParams({
       grant_type: "password",
-      client_id: SEMANTIK_CONFIG.clientId || "",
-      client_secret: SEMANTIK_CONFIG.clientSecret || "",
-      username: SEMANTIK_CONFIG.username || "",
-      password: SEMANTIK_CONFIG.password || "",
+      client_id: SEMANTIK_CONFIG.clientId ?? "",
+      client_secret: SEMANTIK_CONFIG.clientSecret ?? "",
+      username: SEMANTIK_CONFIG.username ?? "",
+      password: SEMANTIK_CONFIG.password ?? "",
     }),
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Failed to get token: ${response.status} ${errorText}`);
+    const err = await response.text();
+    throw new Error(`Gagal ambil token Semantik: ${response.status} ${err}`);
   }
 
   const data: SemantikTokenResponse = await response.json();
-
   cachedToken = data.access_token;
-  tokenExpiry = Date.now() + (data.expires_in * 1000);
+  tokenExpiry = Date.now() + data.expires_in * 1000;
 
   return cachedToken;
 }
 
-/**
- * Clear cached token (useful for logout)
- */
 export function clearSemantikToken(): void {
   cachedToken = null;
   tokenExpiry = 0;
 }
 
-// ─── API Helpers ─────────────────────────────────────────────────────────────
-
+// ─── Generic fetch helper ────────────────────────────────────────────────────
 async function semantikFetch<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
   const token = await getSemantikToken();
   const baseUrl = SEMANTIK_CONFIG.apiBaseUrl;
 
   if (!baseUrl) {
-    throw new Error("NEXT_PUBLIC_SEMANTIK_API_BASE_URL is not configured");
+    throw new Error("SEMANTIK_API_BASE_URL belum dikonfigurasi di .env");
   }
 
   const url = `${baseUrl}${endpoint}`;
@@ -185,25 +220,25 @@ async function semantikFetch<T>(
     ...options,
     headers: {
       "Content-Type": "application/json",
-      "Accept": "application/json",
-      "Authorization": `Bearer ${token}`,
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
       ...options.headers,
     },
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`API Error ${response.status}: ${errorText}`);
+    const err = await response.text();
+    throw new Error(`Semantik API Error ${response.status}: ${err}`);
   }
 
   return response.json();
 }
 
-// ─── Pegawai API ─────────────────────────────────────────────────────────────
+// ─── Pegawai ─────────────────────────────────────────────────────────────────
 
 /**
- * Check employee data by NIP
- * POST {api_base_url}/pegawai/ceknip
+ * Cek data pegawai berdasarkan NIP.
+ * POST /pegawai/ceknip
  */
 export async function checkPegawai(nip: string): Promise<PegawaiResponse> {
   return semantikFetch<PegawaiResponse>("/pegawai/ceknip", {
@@ -212,14 +247,14 @@ export async function checkPegawai(nip: string): Promise<PegawaiResponse> {
   });
 }
 
-// ─── Teleconference API ──────────────────────────────────────────────────────
+// ─── Teleconference ──────────────────────────────────────────────────────────
 
 /**
- * Submit teleconference request
- * POST {api_base_url}/teleconference/permohonan
+ * Kirim permohonan teleconference baru.
+ * POST /teleconference/permohonan
  */
 export async function submitPermohonan(
-  payload: PermohonanRequest
+  payload: PermohonanRequest,
 ): Promise<PermohonanResponse> {
   return semantikFetch<PermohonanResponse>("/teleconference/permohonan", {
     method: "POST",
@@ -228,26 +263,40 @@ export async function submitPermohonan(
 }
 
 /**
- * Get teleconference request detail by external_id
- * GET {api_base_url}/teleconference/permohonan/{external_id}
+ * Ambil detail permohonan berdasarkan ID (angka dari Semantik).
+ * GET /teleconference/permohonan/{id}
  */
-export async function getPermohonanDetail(
-  externalId: string
-): Promise<PermohonanDetailResponse> {
-  return semantikFetch<PermohonanDetailResponse>(
-    `/teleconference/permohonan/${externalId}`
+export async function getPermohonanById(
+  id: number | string,
+): Promise<PermohonanDetail> {
+  return semantikFetch<PermohonanDetail>(`/teleconference/permohonan/${id}`);
+}
+
+/**
+ * Ambil semua permohonan (dengan pagination opsional).
+ * GET /teleconference/permohonan
+ */
+export async function getAllPermohonan(params?: {
+  limit?: number;
+  offset?: number;
+  search?: string;
+}): Promise<PermohonanDetail[]> {
+  const query = new URLSearchParams();
+  if (params?.limit) query.set("limit", String(params.limit));
+  if (params?.offset) query.set("offset", String(params.offset));
+  if (params?.search) query.set("search", params.search);
+
+  const qs = query.toString();
+  return semantikFetch<PermohonanDetail[]>(
+    `/teleconference/permohonan${qs ? `?${qs}` : ""}`,
   );
 }
 
 /**
- * Extract Zoom link from permohonan detail response
- * Returns jadwal[0].linkZoom if available
+ * Ekstrak link Zoom pertama dari detail permohonan.
  */
 export function extractZoomLink(
-  detail: PermohonanDetailResponse | null | undefined
+  detail: PermohonanDetail | null | undefined,
 ): string | null {
-  if (!detail?.data?.jadwal?.[0]?.link_zoom) {
-    return null;
-  }
-  return detail.data.jadwal[0].link_zoom;
+  return detail?.jadwal?.[0]?.linkZoom ?? null;
 }
