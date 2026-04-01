@@ -1,8 +1,10 @@
 import { useMemo, useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { History } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -10,7 +12,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  checkPegawai,
+  submitPermohonan,
+  type PermohonanRequest,
+} from "@/lib/semantik";
+import { useToast } from "@/hooks/use-toast";
 
 function formatDateDDMMYYYY(date = new Date()) {
   const dd = String(date.getDate()).padStart(2, "0");
@@ -21,6 +30,8 @@ function formatDateDDMMYYYY(date = new Date()) {
 
 export default function VideoConferenceRequestForm() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const router = useRouter();
 
   // refs untuk trigger date/time picker
   const tanggalRef = useRef<HTMLInputElement>(null);
@@ -29,6 +40,11 @@ export default function VideoConferenceRequestForm() {
 
   // default request date (readonly)
   const requestDate = useMemo(() => formatDateDDMMYYYY(new Date()), []);
+
+  // Loading & error state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingPegawai, setIsCheckingPegawai] = useState(false);
+  const [pegawaiError, setPegawaiError] = useState<string | null>(null);
 
   // state
   const [judulKegiatan, setJudulKegiatan] = useState("");
@@ -48,12 +64,38 @@ export default function VideoConferenceRequestForm() {
   const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
 
-  // Auto-fill nama dan whatsapp dari data login Semantic
+  // Auto-fill nama dan whatsapp dari data login Semantic + cek pegawai API
   useEffect(() => {
-    if (user) {
-      setNamaPemohon(user.name || "");
-      setWhatsapp(user.whatsapp || "");
-    }
+    const checkPegawaiData = async () => {
+      if (!user?.nip) return;
+
+      setIsCheckingPegawai(true);
+      setPegawaiError(null);
+
+      try {
+        const result = await checkPegawai(user.nip);
+        if (result.status && result.data) {
+          setNamaPemohon(result.data.nama_pegawai || user.name || "");
+          setWhatsapp(result.data.whatsapp || user.whatsapp || "");
+          setEmail(result.data.email || "");
+          setInstansi(result.data.unit_kerja || "");
+          setJabatanPemohon(result.data.jabatan || "");
+        } else {
+          setPegawaiError(result.message || "Data pegawai tidak ditemukan");
+          setNamaPemohon(user.name || "");
+          setWhatsapp(user.whatsapp || "");
+        }
+      } catch (error) {
+        console.error("Error checking pegawai:", error);
+        setPegawaiError("Gagal menghubungkan ke server Semantik");
+        setNamaPemohon(user.name || "");
+        setWhatsapp(user.whatsapp || "");
+      } finally {
+        setIsCheckingPegawai(false);
+      }
+    };
+
+    checkPegawaiData();
   }, [user]);
 
   // Handler untuk trigger date/time picker saat field diklik
@@ -115,48 +157,101 @@ export default function VideoConferenceRequestForm() {
     []
   );
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // frontend dulu: log payload
-    const payload = {
-      requestDate,
-      judulKegiatan,
-      tanggalPelaksanaan,
-      rapatBerulang,
-      jumlahPeserta,
-      waktuMulai,
-      waktuSelesai,
-      instansi,
-      kodeUnit,
-      namaPemohon,
-      jabatanPemohon,
-      email,
-      whatsapp,
-      lokasiAcara,
-      perangkatDibutuhkan,
-      namaHost,
+    // Generate external_id (unique identifier)
+    const externalId = `ZC-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    const payload: PermohonanRequest = {
+      external_id: externalId,
+      judul_kegiatan: judulKegiatan,
+      tanggal_pelaksanaan: tanggalPelaksanaan,
+      waktu_mulai: waktuMulai,
+      waktu_selesai: waktuSelesai || undefined,
+      jumlah_peserta: jumlahPeserta,
+      instansi: instansi,
+      kode_unit: kodeUnit || undefined,
+      nama_pemohon: namaPemohon,
+      jabatan_pemohon: jabatanPemohon,
+      email: email,
+      whatsapp: whatsapp || undefined,
+      lokasi_acara: lokasiAcara || undefined,
+      perangkat_dibutuhkan: perangkatDibutuhkan.length > 0 ? perangkatDibutuhkan : undefined,
+      nama_host: namaHost || undefined,
+      rapat_berulang: rapatBerulang,
       recurrence: rapatBerulang
         ? {
-            repeatType,
-            repeatEvery,
-            repeatOnDays: repeatType === "weekly" ? repeatOnDays : [],
-            endType,
-            endOnDate: endType === "on" ? endOnDate : null,
-            endAfterCount: endType === "after" ? endAfterCount : null,
+            repeat_type: repeatType,
+            repeat_every: repeatEvery,
+            repeat_on_days: repeatType === "weekly" ? repeatOnDays : undefined,
+            end_type: endType,
+            end_on_date: endType === "on" ? endOnDate : undefined,
+            end_after_count: endType === "after" ? endAfterCount : undefined,
           }
         : null,
     };
 
-    console.log("VIDEO CONFERENCE REQUEST:", payload);
-    alert("Form Video Conference tersimpan (frontend) ✅");
+    setIsSubmitting(true);
+
+    try {
+      const result = await submitPermohonan(payload);
+
+      if (result.status) {
+        toast({
+          title: "Permohonan Berhasil!",
+          description: `ID Permohonan: ${externalId}. Tunggu konfirmasi dari admin.`,
+        });
+
+        // Reset form setelah sukses
+        setJudulKegiatan("");
+        setTanggalPelaksanaan("");
+        setJumlahPeserta("");
+        setWaktuMulai("");
+        setWaktuSelesai("");
+        setKodeUnit("");
+        setJabatanPemohon("");
+        setEmail("");
+        setWhatsapp("");
+        setLokasiAcara("");
+        setPerangkatDibutuhkan([]);
+        setNamaHost("");
+        setRapatBerulang(false);
+
+        // Redirect ke history
+        router.push("/request/video-conference/history");
+      } else {
+        toast({
+          title: "Permohonan Gagal",
+          description: result.message || "Terjadi kesalahan saat mengirim permohonan",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error submitting permohonan:", error);
+      toast({
+        title: "Permohonan Gagal",
+        description: error instanceof Error ? error.message : "Gagal menghubungi server",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
-        Video Conference Zoom
-      </h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
+          Video Conference Zoom
+        </h1>
+        <Link href="/request/video-conference/history">
+          <Button variant="outline" className="flex items-center gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300">
+            <History className="h-4 w-4" />
+            Riwayat Permohonan
+          </Button>
+        </Link>
+      </div>
 
       <Card className="overflow-hidden border-slate-200/60 bg-white shadow-lg dark:border-slate-800/60 dark:bg-slate-900/50">
         <div className="h-1.5 w-full bg-blue-600" />
@@ -469,11 +564,21 @@ export default function VideoConferenceRequestForm() {
                 <label className="font-semibold text-slate-900 dark:text-slate-50">
                   Nama Pemohon <span className="text-red-500">*</span>
                 </label>
-                <Input
-                  value={namaPemohon}
-                  readOnly
-                  className="bg-slate-50 dark:bg-slate-800 cursor-not-allowed"
-                />
+                <div className="relative">
+                  <Input
+                    value={namaPemohon}
+                    readOnly
+                    className="bg-slate-50 dark:bg-slate-800 cursor-not-allowed pr-10"
+                  />
+                  {isCheckingPegawai && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                    </div>
+                  )}
+                </div>
+                {pegawaiError && (
+                  <p className="text-xs text-amber-600">{pegawaiError}</p>
+                )}
               </div>
 
               <div className="md:col-span-6 space-y-2">
@@ -569,9 +674,10 @@ export default function VideoConferenceRequestForm() {
             <div className="flex justify-end pt-2">
               <Button
                 type="submit"
-                className="h-12 px-8 rounded-xl bg-blue-600 hover:bg-blue-700"
+                disabled={isSubmitting || isCheckingPegawai}
+                className="h-12 px-8 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Kirim
+                {isSubmitting ? "Mengirim..." : "Kirim"}
               </Button>
             </div>
           </form>
