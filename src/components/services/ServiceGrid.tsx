@@ -4,9 +4,10 @@ import { motion, Variants } from "framer-motion";
 
 interface ServiceGridProps {
   services: Service[];
+  onRequestClick?: (serviceId: string) => void;
 }
 
-const ServiceGrid = ({ services }: ServiceGridProps) => {
+const ServiceGrid = ({ services, onRequestClick }: ServiceGridProps) => {
   // 🎬 Container animation - Smooth fade in dengan stagger children
   const containerVariants: Variants = {
     hidden: {
@@ -71,7 +72,10 @@ const ServiceGrid = ({ services }: ServiceGridProps) => {
             transition: { duration: 0.2 },
           }}
         >
-          <ServiceCard service={service} />
+          <ServiceCard
+            service={service}
+            onRequestClick={onRequestClick}
+          />
         </motion.div>
       ))}
     </motion.div>

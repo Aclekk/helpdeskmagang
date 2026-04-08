@@ -1,6 +1,7 @@
 {
-  "/page": "app/page.js",
-  "/request/video-conference/history/page": "app/request/video-conference/history/page.js",
   "/services/[id]/page": "app/services/[id]/page.js",
-  "/api/teleconference/permohonan/[id]/route": "app/api/teleconference/permohonan/[id]/route.js"
+  "/page": "app/page.js",
+  "/request/vpn/page": "app/request/vpn/page.js",
+  "/services/page": "app/services/page.js",
+  "/request/vpn-client/page": "app/request/vpn-client/page.js"
 }

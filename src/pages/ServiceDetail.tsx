@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { getServiceById, categories } from "@/data/services";
 import { useAuth } from "@/contexts/AuthContext";
+import SubjectSelectionModal from "@/components/vpn/SubjectSelectionModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -72,6 +73,7 @@ const ServiceDetail = () => {
 
   const IconComponent = iconMap[service.icon] || HelpCircle;
   const category = categories.find((c) => c.id === service.category);
+  const [showSubjectModal, setShowSubjectModal] = useState(false);
 
   // ✅ Check apakah layanan butuh login atau tidak
   // VPN adalah satu-satunya layanan yang PUBLIC (ga perlu login)
@@ -137,13 +139,26 @@ const ServiceDetail = () => {
 
   // Handler untuk tombol "Ajukan Sekarang"
   const handleRequestService = () => {
-    // Kalau layanan public (VPN) atau user sudah login, langsung ke form
+    if (service.id === "vpn") {
+      setShowSubjectModal(true); // Tampilkan modal dulu
+      return;
+    }
+
     if (isPublicService || isAuthenticated) {
       router.push(`/request/${service.id}`);
     } else {
       // User belum login, redirect ke login dengan save path
       localStorage.setItem('redirectPath', `/request/${service.id}`);
       router.push('/login');
+    }
+  };
+
+  const handleSubjectLanjut = (subjek: "pribadi" | "orang-lain") => {
+    setShowSubjectModal(false);
+    if (subjek === "pribadi") {
+      router.push("/request/vpn");
+    } else {
+      router.push("/request/vpn-client");
     }
   };
 
@@ -440,6 +455,13 @@ const ServiceDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal */}
+      <SubjectSelectionModal
+        open={showSubjectModal}
+        onClose={() => setShowSubjectModal(false)}
+        onLanjut={handleSubjectLanjut}
+      />
     </div>
   );
 };

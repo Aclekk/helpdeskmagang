@@ -33,13 +33,22 @@ const iconMap: Record<string, LucideIcon> = {
 interface ServiceCardProps {
   service: Service;
   className?: string;
+  onRequestClick?: (serviceId: string) => void;
 }
 
-const ServiceCard = ({ service, className }: ServiceCardProps) => {
+const ServiceCard = ({ service, className, onRequestClick }: ServiceCardProps) => {
   const IconComponent = iconMap[service.icon] || HelpCircle;
+  const router = useRouter();
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (onRequestClick) {
+      e.preventDefault();
+      onRequestClick(service.id);
+    }
+  };
 
   return (
-    <Link href={service.route} className="group block h-full">
+    <Link href={service.route} className="group block h-full" onClick={handleClick}>
       <Card
         className={cn(
           // 🎨 Base - Card dengan background putih & border subtle
