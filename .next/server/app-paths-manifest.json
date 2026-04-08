@@ -1,7 +1,7 @@
 {
+  "/login/page": "app/login/page.js",
   "/services/[id]/page": "app/services/[id]/page.js",
-  "/page": "app/page.js",
   "/request/vpn/page": "app/request/vpn/page.js",
-  "/services/page": "app/services/page.js",
+  "/page": "app/page.js",
   "/request/vpn-client/page": "app/request/vpn-client/page.js"
 }

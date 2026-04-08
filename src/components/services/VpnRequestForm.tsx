@@ -31,8 +31,10 @@ export default function VpnRequestForm() {
   const [jenisPermohonan, setJenisPermohonan] = useState<"baru" | "perpanjangan">("baru");
   const [nama, setNama] = useState("");
   const [jabatan, setJabatan] = useState("");
-  const [statusPegawai, setStatusPegawai] = useState<"asn" | "ta">("asn");
-  const [nip, setNip] = useState("");
+  const [statusPegawai, setStatusPegawai] = useState<"ta" | "tp" | "lainnya">("ta");
+  const [statusLainnya, setStatusLainnya] = useState("");
+  const [tanggalAkhirKontrak, setTanggalAkhirKontrak] = useState("");
+  const [fileKontrak, setFileKontrak] = useState<File | null>(null);
   const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [instansi, setInstansi] = useState<string>("");
@@ -43,11 +45,7 @@ export default function VpnRequestForm() {
 
   const instansiOptions = [
     "Pilih Instansi",
-    "Diskominfo Kota Tangerang",
-    "Dinas Pendidikan",
-    "Dinas Kesehatan",
-    "Kecamatan",
-    "Kelurahan",
+    "Dinas Komunikasi dan Informatika",
   ];
 
   const onSubmit = (e: React.FormEvent) => {
@@ -60,8 +58,9 @@ export default function VpnRequestForm() {
       jenisPermohonan,
       nama,
       jabatan,
-      statusPegawai,
-      nip,
+      statusPegawai: statusPegawai === "lainnya" ? statusLainnya : statusPegawai,
+      tanggalAkhirKontrak,
+      fileKontrak,
       email,
       whatsapp,
       instansi,
@@ -151,38 +150,96 @@ export default function VpnRequestForm() {
               </Label>
               <RadioGroup
                 value={statusPegawai}
-                onValueChange={(value) => setStatusPegawai(value as "asn" | "ta")}
+                onValueChange={(value) => {
+                  setStatusPegawai(value as "ta" | "tp" | "lainnya");
+                  if (value !== "lainnya") setStatusLainnya("");
+                }}
                 className="flex gap-6"
               >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="asn" id="asn" />
-                  <Label htmlFor="asn" className="cursor-pointer">
-                    ASN
-                  </Label>
-                </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="ta" id="ta" />
                   <Label htmlFor="ta" className="cursor-pointer">
                     TA
                   </Label>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="tp" id="tp" />
+                  <Label htmlFor="tp" className="cursor-pointer">
+                    TP
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="lainnya" id="lainnya" />
+                  <Label htmlFor="lainnya" className="cursor-pointer">
+                    Lainnya
+                  </Label>
+                </div>
               </RadioGroup>
+
+              {/* Input muncul saat "Lainnya" dipilih */}
+              {statusPegawai === "lainnya" && (
+                <Input
+                  value={statusLainnya}
+                  onChange={(e) => setStatusLainnya(e.target.value)}
+                  placeholder="Masukkan status pegawai"
+                  required
+                />
+              )}
             </div>
 
-            {/* NIP */}
+            {/* Tanggal Akhir Kontrak */}
             <div className="space-y-2">
-              <Label htmlFor="nip">
-                NIP <span className="text-red-500">*</span>
+              <Label htmlFor="tanggalAkhirKontrak">
+                Tanggal Akhir Kontrak <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="nip"
-                value={nip}
-                onChange={(e) => setNip(e.target.value)}
-                placeholder="Masukkan NIP"
+                id="tanggalAkhirKontrak"
+                type="date"
+                value={tanggalAkhirKontrak}
+                onChange={(e) => setTanggalAkhirKontrak(e.target.value)}
                 required
               />
             </div>
 
+            {/* Upload Kontrak Pekerjaan */}
+            <div className="space-y-2">
+              <Label htmlFor="fileKontrak">
+                Upload Kontrak Pekerjaan <span className="text-red-500">*</span>
+              </Label>
+              <div className="relative flex items-center border border-slate-300 dark:border-slate-600 rounded-md overflow-hidden">
+                <label
+                  htmlFor="fileKontrak"
+                  className="cursor-pointer bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 py-2 px-4 border-r border-slate-300 dark:border-slate-600"
+                >
+                  Pilih File
+                </label>
+                <input
+                  id="fileKontrak"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      if (file.size > 2 * 1024 * 1024) {
+                        alert("File size must be less than 2MB");
+                        return;
+                      }
+                      setFileKontrak(file);
+                    }
+                  }}
+                  required
+                />
+                <span className="flex-grow text-gray-500 dark:text-gray-400 px-3 py-2 bg-white dark:bg-gray-800">
+                  {fileKontrak ? fileKontrak.name : "Tidak ada file yang dipilih"}
+                </span>
+              </div>
+              <p className="text-sm text-slate-600">
+                PDF, JPG, PNG (Max: 2MB)
+              </p>
+            </div>
+
+            
             {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">
@@ -210,6 +267,9 @@ export default function VpnRequestForm() {
                 placeholder="08xxxxxxxxxx"
                 required
               />
+              <p className="text-sm text-red-600">
+                Harap pastikan nomor tersebut aktif dan terdaftar di WhatsApp. Jika sudah tidak aktif, silakan diperbarui.
+              </p>
             </div>
 
             {/* Instansi */}
@@ -234,13 +294,13 @@ export default function VpnRequestForm() {
             {/* Tujuan */}
             <div className="space-y-2">
               <Label htmlFor="tujuan">
-                Tujuan <span className="text-red-500">*</span>
+                Tujuan Penggunaan <span className="text-red-500">*</span>
               </Label>
               <Textarea
                 id="tujuan"
                 value={tujuan}
                 onChange={(e) => setTujuan(e.target.value)}
-                placeholder="Jelaskan tujuan penggunaan VPN"
+                placeholder="Jelaskan tujuan penggunaan"
                 className="min-h-[120px]"
                 required
               />
@@ -309,7 +369,7 @@ export default function VpnRequestForm() {
                 />
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex justify-start">
                 <Button
                   type="button"
                   variant="outline"
