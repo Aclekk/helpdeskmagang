@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useRef } from "react";
+import { FormEvent, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import SignatureCanvas from "react-signature-canvas";
 
+type VpnRequestFormProps = {
+  isClient?: boolean;
+};
+
 function formatDateDDMMYYYY(date = new Date()) {
   const dd = String(date.getDate()).padStart(2, "0");
   const mm = String(date.getMonth() + 1).padStart(2, "0");
@@ -23,50 +27,69 @@ function formatDateDDMMYYYY(date = new Date()) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
-export default function VpnRequestForm() {
-  // default request date (readonly)
+export default function VpnRequestForm({ isClient = false }: VpnRequestFormProps) {
   const requestDate = useMemo(() => formatDateDDMMYYYY(new Date()), []);
 
-  // state
   const [jenisPermohonan, setJenisPermohonan] = useState<"baru" | "perpanjangan">("baru");
   const [nama, setNama] = useState("");
   const [jabatan, setJabatan] = useState("");
+
   const [statusPegawai, setStatusPegawai] = useState<"ta" | "tp" | "lainnya">("ta");
-  const [statusLainnya, setStatusLainnya] = useState("");
   const [tanggalAkhirKontrak, setTanggalAkhirKontrak] = useState("");
-  const [fileKontrak, setFileKontrak] = useState<File | null>(null);
+  const [kontrakPekerjaan, setKontrakPekerjaan] = useState<File | null>(null);
+
+  const [nip, setNip] = useState("");
   const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
-  const [instansi, setInstansi] = useState<string>("");
+
+  const [instansi, setInstansi] = useState<string>(
+    isClient ? "" : "Dinas Komunikasi dan Informatika"
+  );
   const [tujuan, setTujuan] = useState("");
-  const [tandaTangan, setTandaTangan] = useState("");
+
   const sigRef = useRef<SignatureCanvas | null>(null);
   const [isSigned, setIsSigned] = useState(false);
 
   const instansiOptions = [
-    "Pilih Instansi",
     "Dinas Komunikasi dan Informatika",
+    "Dinas Pendidikan",
+    "Dinas Kesehatan",
+    "Kecamatan",
+    "Kelurahan",
   ];
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const signatureData = sigRef.current?.toDataURL();
 
-    const payload = {
-      requestDate,
-      jenisPermohonan,
-      nama,
-      jabatan,
-      statusPegawai: statusPegawai === "lainnya" ? statusLainnya : statusPegawai,
-      tanggalAkhirKontrak,
-      fileKontrak,
-      email,
-      whatsapp,
-      instansi,
-      tujuan,
-      tandaTangan: signatureData,
-    };
+    const payload = isClient
+      ? {
+          requestDate,
+          jenisPermohonan,
+          nama,
+          jabatan,
+          statusPegawai,
+          tanggalAkhirKontrak,
+          kontrakPekerjaan: kontrakPekerjaan?.name ?? null,
+          email,
+          whatsapp,
+          instansi,
+          tujuan,
+          tandaTangan: signatureData,
+        }
+      : {
+          requestDate,
+          jenisPermohonan,
+          nama,
+          jabatan,
+          nip,
+          email,
+          whatsapp,
+          instansi,
+          tujuan,
+          tandaTangan: signatureData,
+        };
 
     console.log("VPN REQUEST:", payload);
     alert("Form VPN tersimpan (frontend) ✅");
@@ -89,8 +112,6 @@ export default function VpnRequestForm() {
 
         <CardContent className="pt-6">
           <form onSubmit={onSubmit} className="space-y-6">
-
-            {/* Jenis Permohonan */}
             <div className="space-y-3">
               <Label className="text-base font-semibold">
                 Jenis Permohonan <span className="text-red-500">*</span>
@@ -115,7 +136,6 @@ export default function VpnRequestForm() {
               </RadioGroup>
             </div>
 
-            {/* Nama */}
             <div className="space-y-2">
               <Label htmlFor="nama">
                 Nama <span className="text-red-500">*</span>
@@ -129,7 +149,6 @@ export default function VpnRequestForm() {
               />
             </div>
 
-            {/* Jabatan */}
             <div className="space-y-2">
               <Label htmlFor="jabatan">
                 Jabatan <span className="text-red-500">*</span>
@@ -143,104 +162,82 @@ export default function VpnRequestForm() {
               />
             </div>
 
-            {/* Status Pegawai */}
-            <div className="space-y-3">
-              <Label className="text-base font-semibold">
-                Status Pegawai <span className="text-red-500">*</span>
-              </Label>
-              <RadioGroup
-                value={statusPegawai}
-                onValueChange={(value) => {
-                  setStatusPegawai(value as "ta" | "tp" | "lainnya");
-                  if (value !== "lainnya") setStatusLainnya("");
-                }}
-                className="flex gap-6"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="ta" id="ta" />
-                  <Label htmlFor="ta" className="cursor-pointer">
-                    TA
+            {isClient ? (
+              <>
+                <div className="space-y-3">
+                  <Label className="text-base font-semibold">
+                    Status Pegawai <span className="text-red-500">*</span>
                   </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="tp" id="tp" />
-                  <Label htmlFor="tp" className="cursor-pointer">
-                    TP
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="lainnya" id="lainnya" />
-                  <Label htmlFor="lainnya" className="cursor-pointer">
-                    Lainnya
-                  </Label>
-                </div>
-              </RadioGroup>
-
-              {/* Input muncul saat "Lainnya" dipilih */}
-              {statusPegawai === "lainnya" && (
-                <Input
-                  value={statusLainnya}
-                  onChange={(e) => setStatusLainnya(e.target.value)}
-                  placeholder="Masukkan status pegawai"
-                  required
-                />
-              )}
-            </div>
-
-            {/* Tanggal Akhir Kontrak */}
-            <div className="space-y-2">
-              <Label htmlFor="tanggalAkhirKontrak">
-                Tanggal Akhir Kontrak <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="tanggalAkhirKontrak"
-                type="date"
-                value={tanggalAkhirKontrak}
-                onChange={(e) => setTanggalAkhirKontrak(e.target.value)}
-                required
-              />
-            </div>
-
-            {/* Upload Kontrak Pekerjaan */}
-            <div className="space-y-2">
-              <Label htmlFor="fileKontrak">
-                Upload Kontrak Pekerjaan <span className="text-red-500">*</span>
-              </Label>
-              <div className="relative flex items-center border border-slate-300 dark:border-slate-600 rounded-md overflow-hidden">
-                <label
-                  htmlFor="fileKontrak"
-                  className="cursor-pointer bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 py-2 px-4 border-r border-slate-300 dark:border-slate-600"
-                >
-                  Pilih File
-                </label>
-                <input
-                  id="fileKontrak"
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      if (file.size > 2 * 1024 * 1024) {
-                        alert("File size must be less than 2MB");
-                        return;
-                      }
-                      setFileKontrak(file);
+                  <RadioGroup
+                    value={statusPegawai}
+                    onValueChange={(value) =>
+                      setStatusPegawai(value as "ta" | "tp" | "lainnya")
                     }
-                  }}
+                    className="flex gap-6"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="ta" id="ta" />
+                      <Label htmlFor="ta" className="cursor-pointer">
+                        TA
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="tp" id="tp" />
+                      <Label htmlFor="tp" className="cursor-pointer">
+                        TP
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="lainnya" id="lainnya" />
+                      <Label htmlFor="lainnya" className="cursor-pointer">
+                        Lainnya
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="tanggalAkhirKontrak">
+                    Tanggal Akhir Kontrak <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="tanggalAkhirKontrak"
+                    type="date"
+                    value={tanggalAkhirKontrak}
+                    onChange={(e) => setTanggalAkhirKontrak(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="kontrakPekerjaan">
+                    Upload Kontrak Pekerjaan <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="kontrakPekerjaan"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => setKontrakPekerjaan(e.target.files?.[0] ?? null)}
+                    required
+                  />
+                  <p className="text-xs text-slate-500">Format: PDF, JPG, PNG. Maks: 2MB</p>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="nip">
+                  NIP <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="nip"
+                  value={nip}
+                  onChange={(e) => setNip(e.target.value)}
+                  placeholder="Masukkan NIP"
                   required
                 />
-                <span className="flex-grow text-gray-500 dark:text-gray-400 px-3 py-2 bg-white dark:bg-gray-800">
-                  {fileKontrak ? fileKontrak.name : "Tidak ada file yang dipilih"}
-                </span>
               </div>
-              <p className="text-sm text-slate-600">
-                PDF, JPG, PNG (Max: 2MB)
-              </p>
-            </div>
+            )}
 
-            
-            {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">
                 Email <span className="text-red-500">*</span>
@@ -255,10 +252,9 @@ export default function VpnRequestForm() {
               />
             </div>
 
-            {/* Nomor Telp/WhatsApp */}
             <div className="space-y-2">
               <Label htmlFor="whatsapp">
-                Nomor Telp yang terhubung ke Whatsapp <span className="text-red-500">*</span>
+                Nomor Telp yang terhubung ke WhatsApp <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="whatsapp"
@@ -267,12 +263,12 @@ export default function VpnRequestForm() {
                 placeholder="08xxxxxxxxxx"
                 required
               />
-              <p className="text-sm text-red-600">
-                Harap pastikan nomor tersebut aktif dan terdaftar di WhatsApp. Jika sudah tidak aktif, silakan diperbarui.
+              <p className="text-xs text-red-500">
+                Harap pastikan nomor tersebut aktif dan terdaftar di WhatsApp. Jika sudah tidak aktif,
+                silakan diperbarui.
               </p>
             </div>
 
-            {/* Instansi */}
             <div className="space-y-2">
               <Label htmlFor="instansi">
                 Instansi <span className="text-red-500">*</span>
@@ -291,7 +287,6 @@ export default function VpnRequestForm() {
               </Select>
             </div>
 
-            {/* Tujuan */}
             <div className="space-y-2">
               <Label htmlFor="tujuan">
                 Tujuan Penggunaan <span className="text-red-500">*</span>
@@ -300,20 +295,18 @@ export default function VpnRequestForm() {
                 id="tujuan"
                 value={tujuan}
                 onChange={(e) => setTujuan(e.target.value)}
-                placeholder="Jelaskan tujuan penggunaan"
+                placeholder="Contoh: akses aplikasi internal dari luar jaringan"
                 className="min-h-[120px]"
                 required
               />
             </div>
 
-            {/* Tanda Tangan */}
             <div className="space-y-2">
               <Label>
                 Tanda Tangan <span className="text-red-500">*</span>
               </Label>
 
               <div className="relative h-[300px] w-full overflow-hidden rounded-md border-2 border-slate-300 bg-white">
-                {/* SVG Placeholder */}
                 {!isSigned && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <svg
@@ -322,7 +315,6 @@ export default function VpnRequestForm() {
                       viewBox="0 0 600 250"
                       className="text-slate-300"
                     >
-                      {/* Text */}
                       <text
                         x="50%"
                         y="45%"
@@ -334,7 +326,6 @@ export default function VpnRequestForm() {
                         Sign Here
                       </text>
 
-                      {/* Wave line */}
                       <path
                         d="M40 170 C120 150, 180 190, 260 170 S400 150, 560 170"
                         fill="none"
@@ -343,7 +334,6 @@ export default function VpnRequestForm() {
                         strokeLinecap="round"
                       />
 
-                      {/* Small icon (pen) */}
                       <rect
                         x="500"
                         y="145"
@@ -358,7 +348,6 @@ export default function VpnRequestForm() {
                   </div>
                 )}
 
-                {/* Signature Canvas */}
                 <SignatureCanvas
                   ref={sigRef}
                   penColor="#0f172a"
@@ -369,7 +358,7 @@ export default function VpnRequestForm() {
                 />
               </div>
 
-              <div className="flex justify-start">
+              <div className="flex justify-end">
                 <Button
                   type="button"
                   variant="outline"
@@ -384,7 +373,6 @@ export default function VpnRequestForm() {
               </div>
             </div>
 
-            {/* Submit Button */}
             <div className="flex justify-end pt-4">
               <Button
                 type="submit"
