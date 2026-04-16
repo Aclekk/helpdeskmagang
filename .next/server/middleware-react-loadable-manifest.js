@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{}"
+self.__REACT_LOADABLE_MANIFEST="{\"app\\\\request\\\\video-conference\\\\history\\\\page.tsx -> @/components/services/VideoConferenceHistory\":{\"id\":\"app\\\\request\\\\video-conference\\\\history\\\\page.tsx -> @/components/services/VideoConferenceHistory\",\"files\":[\"static/chunks/_app-pages-browser_src_components_services_VideoConferenceHistory_tsx.js\"]}}"

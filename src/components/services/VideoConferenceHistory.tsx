@@ -45,7 +45,7 @@ type SortField =
   | "status";
 type SortDir = "asc" | "desc";
 
-// ─── localStorage helpers ─────────────────────────────────────────────────────
+// ─── localStorage helpers (fallback cache) ───────────────────────────────────
 
 function loadFromLocalStorage(): LocalPermohonan[] {
   if (typeof window === "undefined") return [];
@@ -66,7 +66,90 @@ function persistToLocalStorage(list: LocalPermohonan[]) {
   }
 }
 
+// ─── Map from Semantik API response to LocalPermohonan ───────────────────────
+
+interface SemantikPermohonan {
+  id: number;
+  noTiket: string;
+  tanggalPermohonan: string;
+  instansi: string;
+  kodeUnor?: string;
+  namaPemohon: string;
+  jabatanPemohon: string;
+  email: string;
+  nomorTelepon?: string;
+  judulKegiatan: string;
+  lokasiAcara?: string;
+  tanggalMulai: string;
+  waktuMulai: string;
+  durasiMenit: number;
+  jumlahPeserta: string;
+  perangkatDibutuhkan?: string;
+  jenisKegiatan?: string;
+  keterangan?: string;
+  status: string;
+  isRecurring: boolean;
+  recurrenceFreq?: string;
+  recurrenceInterval?: number;
+  recurrenceDays?: string;
+  recurrenceEndType?: string;
+  recurrenceEndDate?: string;
+  recurrenceCount?: number;
+  createdAt: string;
+  updatedAt: string;
+  jadwal?: { linkZoom?: string }[];
+}
+
+function mapSemantikToPermohonan(item: SemantikPermohonan): LocalPermohonan {
+  return {
+    semantikId: item.id,
+    noTiket: item.noTiket,
+    requestDate: item.createdAt,
+    tanggalPermohonan: item.tanggalPermohonan,
+    judulKegiatan: item.judulKegiatan,
+    tanggalPelaksanaan: item.tanggalMulai,
+    waktuMulai: item.waktuMulai,
+    durasiMenit: item.durasiMenit,
+    waktuSelesai: hitungWaktuSelesai(item.waktuMulai, item.durasiMenit),
+    jumlahPeserta: item.jumlahPeserta,
+    instansi: item.instansi,
+    kodeUnor: item.kodeUnor || "",
+    namaPemohon: item.namaPemohon,
+    jabatanPemohon: item.jabatanPemohon,
+    email: item.email,
+    nomorTelepon: item.nomorTelepon || "",
+    lokasiAcara: item.lokasiAcara || "",
+    perangkatDibutuhkan: item.perangkatDibutuhkan || "",
+    namaHost: "",
+    acaraBerulang: item.isRecurring,
+    pengulangan: item.recurrenceFreq as
+      | "harian"
+      | "mingguan"
+      | "bulanan"
+      | undefined,
+    ulangSetiap: item.recurrenceInterval,
+    hariMingguan: item.recurrenceDays
+      ? item.recurrenceDays.split(",")
+      : undefined,
+    jenisBerakhir: item.recurrenceEndType as "date" | "count" | undefined,
+    tanggalBerakhir: item.recurrenceEndDate,
+    jumlahPenyelenggaraan: item.recurrenceCount,
+    status: normalizeStatus(item.status),
+    linkZoom: item.jadwal?.[0]?.linkZoom,
+    lastSync: item.updatedAt,
+  };
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function hitungWaktuSelesai(waktuMulai: string, durasiMenit: number): string {
+  if (!waktuMulai) return "";
+  const [h, m] = waktuMulai.split(":").map(Number);
+  const total = h * 60 + m + durasiMenit;
+  const hh = String(Math.floor(total / 60) % 24).padStart(2, "0");
+  const mm = String(total % 60).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
 
 function formatDateTime(iso: string): string {
   if (!iso) return "-";
@@ -228,6 +311,7 @@ export default function VideoConferenceHistory() {
   const { toast } = useToast();
 
   const [data, setData] = useState<LocalPermohonan[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
@@ -237,9 +321,49 @@ export default function VideoConferenceHistory() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncingIds, setSyncingIds] = useState<Set<number>>(new Set());
 
-  // Load dari localStorage saat mount (client only)
+  // Fetch data dari Semantik API saat mount
+  // Fetch data dari Semantik API saat mount
   useEffect(() => {
-    setData(loadFromLocalStorage());
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const res = await fetch("/api/teleconference/permohonan");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const result = await res.json();
+
+        console.log("RESULT SEMANTIK:", result); // ← debug sementara
+
+        // Handle berbagai format response
+        const list = Array.isArray(result)
+          ? result
+          : Array.isArray(result?.data)
+            ? result.data
+            : Array.isArray(result?.items)
+              ? result.items
+              : [];
+
+        // Map response dari Semantik ke LocalPermohonan
+        const mapped = list.map(mapSemantikToPermohonan);
+        setData(mapped);
+
+        // Cache ke localStorage sebagai fallback
+        persistToLocalStorage(mapped);
+      } catch (err) {
+        console.error("Fetch error:", err);
+        // Fallback ke localStorage jika API gagal
+        const cached = loadFromLocalStorage();
+        setData(cached);
+        toast({
+          title: "Gagal memuat data dari server",
+          description: "Menampilkan data dari cache lokal",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const handleSort = (field: SortField) => {
@@ -287,13 +411,10 @@ export default function VideoConferenceHistory() {
 
       const detail = await res.json();
 
-      // detail bisa langsung object atau { data: object }
-      const d = detail?.data ?? detail;
-
-      const newStatus = normalizeStatus(d?.status ?? "menunggu");
+      const newStatus = normalizeStatus(detail?.status ?? "menunggu");
       const linkZoom: string | undefined =
-        Array.isArray(d?.jadwal) && d.jadwal.length > 0
-          ? d.jadwal[0]?.linkZoom
+        Array.isArray(detail?.jadwal) && detail.jadwal.length > 0
+          ? detail.jadwal[0]?.linkZoom
           : undefined;
 
       setData((prev) => {
@@ -337,14 +458,34 @@ export default function VideoConferenceHistory() {
     if (!user) return;
     setIsSyncing(true);
     try {
-      const toSync = data.filter((x) => x.semantikId && x.status !== "selesai");
-      await Promise.all(toSync.map(syncOne));
-      if (toSync.length > 0) {
-        toast({
-          title: "Sinkronisasi Selesai",
-          description: `${toSync.length} permohonan diperbarui`,
-        });
-      }
+      const res = await fetch("/api/teleconference/permohonan");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const result = await res.json();
+
+      // Handle berbagai format response
+      const list = Array.isArray(result)
+        ? result
+        : Array.isArray(result?.data)
+          ? result.data
+          : Array.isArray(result?.items)
+            ? result.items
+            : [];
+
+      const mapped = list.map(mapSemantikToPermohonan);
+      setData(mapped);
+      persistToLocalStorage(mapped);
+
+      toast({
+        title: "Sinkronisasi Selesai",
+        description: "Data permohonan telah diperbarui dari server",
+      });
+    } catch (err) {
+      console.error("Sync all error:", err);
+      toast({
+        title: "Sinkronisasi Gagal",
+        description: "Gagal memperbarui data dari server",
+        variant: "destructive",
+      });
     } finally {
       setIsSyncing(false);
     }
@@ -371,307 +512,328 @@ export default function VideoConferenceHistory() {
         </Link>
       </div>
 
-      <Card className="overflow-hidden border-slate-200/60 bg-white shadow-lg dark:border-slate-800/60 dark:bg-slate-900/50">
-        <div className="h-1.5 w-full bg-blue-600" />
-        <CardHeader className="border-b border-slate-200/60 bg-white/60 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/60">
-          <CardTitle className="text-lg font-semibold text-slate-900 dark:text-slate-50">
-            Daftar Permohonan Anda
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent className="pt-5 space-y-4">
-          {/* Sync Button */}
-          <div className="flex justify-end">
-            <Button
-              onClick={syncAll}
-              disabled={
-                isSyncing || data.filter((x) => x.semantikId).length === 0
-              }
-              variant="outline"
-              className="flex items-center gap-2 text-sm"
-            >
-              <RefreshCw
-                className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}
-              />
-              {isSyncing ? "Menyinkronkan..." : "Sinkronkan Semua"}
-            </Button>
+      {isLoading && (
+        <div className="flex items-center justify-center p-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-slate-600 dark:text-slate-400">
+              Memuat data riwayat dari server...
+            </p>
           </div>
+        </div>
+      )}
 
-          {/* Toolbar */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-              <span>Tampilkan</span>
-              <Select
-                value={String(pageSize)}
-                onValueChange={(v) => {
-                  setPageSize(Number(v));
-                  setPage(1);
-                }}
+      {!isLoading && (
+        <Card className="overflow-hidden border-slate-200/60 bg-white shadow-lg dark:border-slate-800/60 dark:bg-slate-900/50">
+          <div className="h-1.5 w-full bg-blue-600" />
+          <CardHeader className="border-b border-slate-200/60 bg-white/60 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/60">
+            <CardTitle className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+              Daftar Permohonan Anda
+            </CardTitle>
+          </CardHeader>
+
+          <CardContent className="pt-5 space-y-4">
+            {/* Sync Button */}
+            <div className="flex justify-end">
+              <Button
+                onClick={syncAll}
+                disabled={
+                  isSyncing || data.filter((x) => x.semantikId).length === 0
+                }
+                variant="outline"
+                className="flex items-center gap-2 text-sm"
               >
-                <SelectTrigger className="h-8 w-[70px] text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[5, 10, 25, 50].map((n) => (
-                    <SelectItem key={n} value={String(n)}>
-                      {n}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <span>data</span>
+                <RefreshCw
+                  className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}
+                />
+                {isSyncing ? "Menyinkronkan..." : "Sinkronkan Semua"}
+              </Button>
             </div>
-            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-              <span className="font-medium">Cari:</span>
-              <Input
-                className="h-8 w-full sm:w-[220px] text-sm"
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-              />
-            </div>
-          </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide w-12">
-                    No
-                  </th>
-                  <th
-                    className={thClass}
-                    onClick={() => handleSort("requestDate")}
-                  >
-                    <span className="inline-flex items-center">
-                      Tgl. Request{" "}
-                      <SortIcon
-                        field="requestDate"
-                        sortField={sortField}
-                        sortDir={sortDir}
-                      />
-                    </span>
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide whitespace-nowrap">
-                    No. Tiket
-                  </th>
-                  <th
-                    className={thClass}
-                    onClick={() => handleSort("judulKegiatan")}
-                  >
-                    <span className="inline-flex items-center">
-                      Judul Kegiatan{" "}
-                      <SortIcon
-                        field="judulKegiatan"
-                        sortField={sortField}
-                        sortDir={sortDir}
-                      />
-                    </span>
-                  </th>
-                  <th
-                    className={thClass}
-                    onClick={() => handleSort("instansi")}
-                  >
-                    <span className="inline-flex items-center">
-                      Instansi{" "}
-                      <SortIcon
-                        field="instansi"
-                        sortField={sortField}
-                        sortDir={sortDir}
-                      />
-                    </span>
-                  </th>
-                  <th
-                    className={thClass}
-                    onClick={() => handleSort("tanggalPelaksanaan")}
-                  >
-                    <span className="inline-flex items-center">
-                      Tgl. Pelaksanaan{" "}
-                      <SortIcon
-                        field="tanggalPelaksanaan"
-                        sortField={sortField}
-                        sortDir={sortDir}
-                      />
-                    </span>
-                  </th>
-                  <th className={thClass} onClick={() => handleSort("status")}>
-                    <span className="inline-flex items-center">
-                      Status{" "}
-                      <SortIcon
-                        field="status"
-                        sortField={sortField}
-                        sortDir={sortDir}
-                      />
-                    </span>
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide whitespace-nowrap">
-                    Link Zoom
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wide whitespace-nowrap">
-                    Aksi
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {paginated.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={9}
-                      className="px-4 py-10 text-center text-slate-400"
+            {/* Toolbar */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <span>Tampilkan</span>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(v) => {
+                    setPageSize(Number(v));
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[70px] text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[5, 10, 25, 50].map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span>data</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <span className="font-medium">Cari:</span>
+                <Input
+                  className="h-8 w-full sm:w-[220px] text-sm"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide w-12">
+                      No
+                    </th>
+                    <th
+                      className={thClass}
+                      onClick={() => handleSort("requestDate")}
                     >
-                      {data.length === 0
-                        ? "Belum ada permohonan. Buat permohonan baru!"
-                        : "Tidak ada data yang cocok."}
-                    </td>
+                      <span className="inline-flex items-center">
+                        Tgl. Request{" "}
+                        <SortIcon
+                          field="requestDate"
+                          sortField={sortField}
+                          sortDir={sortDir}
+                        />
+                      </span>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide whitespace-nowrap">
+                      No. Tiket
+                    </th>
+                    <th
+                      className={thClass}
+                      onClick={() => handleSort("judulKegiatan")}
+                    >
+                      <span className="inline-flex items-center">
+                        Judul Kegiatan{" "}
+                        <SortIcon
+                          field="judulKegiatan"
+                          sortField={sortField}
+                          sortDir={sortDir}
+                        />
+                      </span>
+                    </th>
+                    <th
+                      className={thClass}
+                      onClick={() => handleSort("instansi")}
+                    >
+                      <span className="inline-flex items-center">
+                        Instansi{" "}
+                        <SortIcon
+                          field="instansi"
+                          sortField={sortField}
+                          sortDir={sortDir}
+                        />
+                      </span>
+                    </th>
+                    <th
+                      className={thClass}
+                      onClick={() => handleSort("tanggalPelaksanaan")}
+                    >
+                      <span className="inline-flex items-center">
+                        Tgl. Pelaksanaan{" "}
+                        <SortIcon
+                          field="tanggalPelaksanaan"
+                          sortField={sortField}
+                          sortDir={sortDir}
+                        />
+                      </span>
+                    </th>
+                    <th
+                      className={thClass}
+                      onClick={() => handleSort("status")}
+                    >
+                      <span className="inline-flex items-center">
+                        Status{" "}
+                        <SortIcon
+                          field="status"
+                          sortField={sortField}
+                          sortDir={sortDir}
+                        />
+                      </span>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide whitespace-nowrap">
+                      Link Zoom
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wide whitespace-nowrap">
+                      Aksi
+                    </th>
                   </tr>
-                ) : (
-                  paginated.map((item, idx) => (
-                    <tr
-                      key={`${item.semantikId}-${idx}`}
-                      className="bg-white hover:bg-slate-50/70 dark:bg-transparent dark:hover:bg-slate-800/40 transition-colors"
-                    >
-                      <td className="px-4 py-3 text-slate-500 text-center">
-                        {(page - 1) * pageSize + idx + 1}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
-                        {formatDateTime(item.requestDate)}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap font-mono text-xs">
-                        {item.noTiket ?? "-"}
-                      </td>
-                      <td className="px-4 py-3 text-slate-900 max-w-[200px]">
-                        <span className="line-clamp-2">
-                          {item.judulKegiatan}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600 max-w-[180px]">
-                        <span className="line-clamp-2">{item.instansi}</span>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
-                        {item.tanggalPelaksanaan}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <StatusBadge status={item.status} />
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {item.linkZoom ? (
-                          <a
-                            href={item.linkZoom}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 underline flex items-center gap-1"
-                          >
-                            <ExternalLink className="h-3 w-3" /> Buka
-                          </a>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            onClick={() => setDetailItem(item)}
-                            className="inline-flex items-center gap-1 rounded px-2.5 py-1.5 text-xs font-semibold bg-cyan-500 hover:bg-cyan-600 text-white transition-colors shadow-sm"
-                          >
-                            <Eye className="h-3.5 w-3.5" /> Detail
-                          </button>
-                          {item.semantikId && item.status !== "selesai" && (
-                            <button
-                              onClick={() => syncOne(item)}
-                              disabled={syncingIds.has(item.semantikId!)}
-                              className="inline-flex items-center gap-1 rounded px-2.5 py-1.5 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white transition-colors shadow-sm disabled:opacity-50"
-                            >
-                              <RefreshCw
-                                className={`h-3.5 w-3.5 ${syncingIds.has(item.semantikId!) ? "animate-spin" : ""}`}
-                              />
-                              {syncingIds.has(item.semantikId!)
-                                ? "Sync..."
-                                : "Sync"}
-                            </button>
-                          )}
-                        </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {paginated.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={9}
+                        className="px-4 py-10 text-center text-slate-400"
+                      >
+                        {data.length === 0
+                          ? "Belum ada permohonan. Buat permohonan baru!"
+                          : "Tidak ada data yang cocok."}
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-1">
-            <p className="text-sm text-slate-500">
-              Menampilkan{" "}
-              <span className="font-medium text-slate-700">
-                {filtered.length === 0 ? 0 : (page - 1) * pageSize + 1}–
-                {Math.min(page * pageSize, filtered.length)}
-              </span>{" "}
-              dari{" "}
-              <span className="font-medium text-slate-700">
-                {filtered.length}
-              </span>{" "}
-              data
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage(1)}
-                disabled={page === 1}
-                className="inline-flex h-8 w-8 items-center justify-center rounded border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <ChevronsLeft className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="inline-flex h-8 w-8 items-center justify-center rounded border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(
-                  (p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1,
-                )
-                .reduce<(number | "...")[]>((acc, p, i, arr) => {
-                  if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("...");
-                  acc.push(p);
-                  return acc;
-                }, [])
-                .map((p, i) =>
-                  p === "..." ? (
-                    <span key={`e${i}`} className="px-1 text-slate-400 text-sm">
-                      …
-                    </span>
                   ) : (
-                    <button
-                      key={p}
-                      onClick={() => setPage(p as number)}
-                      className={`inline-flex h-8 w-8 items-center justify-center rounded border text-sm font-medium transition-colors ${p === page ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}
-                    >
-                      {p}
-                    </button>
-                  ),
-                )}
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="inline-flex h-8 w-8 items-center justify-center rounded border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setPage(totalPages)}
-                disabled={page === totalPages}
-                className="inline-flex h-8 w-8 items-center justify-center rounded border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <ChevronsRight className="h-4 w-4" />
-              </button>
+                    paginated.map((item, idx) => (
+                      <tr
+                        key={`${item.semantikId}-${idx}`}
+                        className="bg-white hover:bg-slate-50/70 dark:bg-transparent dark:hover:bg-slate-800/40 transition-colors"
+                      >
+                        <td className="px-4 py-3 text-slate-500 text-center">
+                          {(page - 1) * pageSize + idx + 1}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                          {formatDateTime(item.requestDate)}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 whitespace-nowrap font-mono text-xs">
+                          {item.noTiket ?? "-"}
+                        </td>
+                        <td className="px-4 py-3 text-slate-900 max-w-[200px]">
+                          <span className="line-clamp-2">
+                            {item.judulKegiatan}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 max-w-[180px]">
+                          <span className="line-clamp-2">{item.instansi}</span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                          {item.tanggalPelaksanaan}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <StatusBadge status={item.status} />
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {item.linkZoom ? (
+                            <a
+                              href={item.linkZoom}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline flex items-center gap-1"
+                            >
+                              <ExternalLink className="h-3 w-3" /> Buka
+                            </a>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => setDetailItem(item)}
+                              className="inline-flex items-center gap-1 rounded px-2.5 py-1.5 text-xs font-semibold bg-cyan-500 hover:bg-cyan-600 text-white transition-colors shadow-sm"
+                            >
+                              <Eye className="h-3.5 w-3.5" /> Detail
+                            </button>
+                            {item.semantikId && item.status !== "selesai" && (
+                              <button
+                                onClick={() => syncOne(item)}
+                                disabled={syncingIds.has(item.semantikId!)}
+                                className="inline-flex items-center gap-1 rounded px-2.5 py-1.5 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white transition-colors shadow-sm disabled:opacity-50"
+                              >
+                                <RefreshCw
+                                  className={`h-3.5 w-3.5 ${syncingIds.has(item.semantikId!) ? "animate-spin" : ""}`}
+                                />
+                                {syncingIds.has(item.semantikId!)
+                                  ? "Sync..."
+                                  : "Sync"}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+
+            {/* Pagination */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-1">
+              <p className="text-sm text-slate-500">
+                Menampilkan{" "}
+                <span className="font-medium text-slate-700">
+                  {filtered.length === 0 ? 0 : (page - 1) * pageSize + 1}–
+                  {Math.min(page * pageSize, filtered.length)}
+                </span>{" "}
+                dari{" "}
+                <span className="font-medium text-slate-700">
+                  {filtered.length}
+                </span>{" "}
+                data
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage(1)}
+                  disabled={page === 1}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(
+                    (p) =>
+                      p === 1 || p === totalPages || Math.abs(p - page) <= 1,
+                  )
+                  .reduce<(number | "...")[]>((acc, p, i, arr) => {
+                    if (i > 0 && p - (arr[i - 1] as number) > 1)
+                      acc.push("...");
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, i) =>
+                    p === "..." ? (
+                      <span
+                        key={`e${i}`}
+                        className="px-1 text-slate-400 text-sm"
+                      >
+                        …
+                      </span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setPage(p as number)}
+                        className={`inline-flex h-8 w-8 items-center justify-center rounded border text-sm font-medium transition-colors ${p === page ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}
+                      >
+                        {p}
+                      </button>
+                    ),
+                  )}
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setPage(totalPages)}
+                  disabled={page === totalPages}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <DetailDialog
         item={detailItem}
