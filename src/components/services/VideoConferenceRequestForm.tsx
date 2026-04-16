@@ -260,7 +260,10 @@ export default function VideoConferenceRequestForm() {
           ? perangkatDibutuhkan.join(", ")
           : undefined,
       jenisKegiatan: jenisKegiatan || undefined,
-      keterangan: keterangan || undefined,
+      keterangan: [
+        namaHost ? `Nama host: ${namaHost}` : null,
+        perangkatDibutuhkan.length > 0 ? `Perangkat: ${perangkatDibutuhkan.join(", ")}` : null,
+      ].filter(Boolean).join(" | ") || "-",
       acaraBerulang,
       ...(acaraBerulang && {
         pengulangan,
@@ -827,29 +830,7 @@ export default function VideoConferenceRequestForm() {
               />
             </div>
 
-            {/* Jenis Kegiatan & Keterangan */}
-            <div className="space-y-2">
-              <label className="font-semibold text-slate-900 dark:text-slate-50">
-                Jenis Kegiatan (opsional)
-              </label>
-              <Input
-                value={jenisKegiatan}
-                onChange={(e) => setJenisKegiatan(e.target.value)}
-                placeholder="Contoh: Rapat, Webinar, Pelatihan"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="font-semibold text-slate-900 dark:text-slate-50">
-                Keterangan (opsional)
-              </label>
-              <textarea
-                className="min-h-[84px] w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-50"
-                value={keterangan}
-                onChange={(e) => setKeterangan(e.target.value)}
-                placeholder="Informasi tambahan (opsional)"
-              />
-            </div>
-
+            
             <div className="flex justify-end pt-2">
               <Button
                 type="submit"

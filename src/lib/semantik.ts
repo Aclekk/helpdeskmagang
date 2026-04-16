@@ -206,6 +206,7 @@ export function clearSemantikToken(): void {
 async function semantikFetch<T>(
   endpoint: string,
   options: RequestInit = {},
+  retry = true, // ← tambah param ini
 ): Promise<T> {
   const token = await getSemantikToken();
   const baseUrl = SEMANTIK_CONFIG.apiBaseUrl;
@@ -225,6 +226,12 @@ async function semantikFetch<T>(
       ...options.headers,
     },
   });
+
+  // ← tambah block ini
+  if (response.status === 401 && retry) {
+    clearSemantikToken(); // buang cache token lama
+    return semantikFetch<T>(endpoint, options, false); // retry sekali
+  }
 
   if (!response.ok) {
     const err = await response.text();

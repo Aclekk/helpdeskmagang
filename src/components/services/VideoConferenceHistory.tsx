@@ -238,46 +238,85 @@ function DetailDialog({
 }) {
   if (!item) return null;
 
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    if (item.linkZoom) {
+      navigator.clipboard.writeText(item.linkZoom);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   const rows: { label: string; value: React.ReactNode }[] = [
-    { label: "No. Tiket", value: item.noTiket ?? "-" },
-    { label: "ID Semantik", value: item.semantikId ?? "-" },
-    { label: "Tgl. Permohonan", value: formatDateTime(item.requestDate) },
-    { label: "Judul Kegiatan", value: item.judulKegiatan },
-    { label: "Tgl. Pelaksanaan", value: item.tanggalPelaksanaan },
     {
-      label: "Waktu",
-      value: `${item.waktuMulai} – ${item.waktuSelesai || "-"} (${item.durasiMenit} menit)`,
-    },
-    { label: "Instansi", value: item.instansi },
-    { label: "Kode Unit Org.", value: item.kodeUnor || "-" },
-    { label: "Nama Pemohon", value: item.namaPemohon },
-    { label: "Jabatan Pemohon", value: item.jabatanPemohon },
-    { label: "Jumlah Peserta", value: item.jumlahPeserta || "-" },
-    { label: "Lokasi Acara", value: item.lokasiAcara || "-" },
-    { label: "Perangkat", value: item.perangkatDibutuhkan || "-" },
-    { label: "Nama Host", value: item.namaHost || "-" },
-    { label: "Email", value: item.email },
-    { label: "No. WhatsApp", value: item.nomorTelepon || "-" },
-    { label: "Acara Berulang", value: item.acaraBerulang ? "Ya" : "Tidak" },
-    { label: "Status", value: <StatusBadge status={item.status} /> },
-    {
-      label: "Link Zoom",
-      value: item.linkZoom ? (
-        <a
-          href={item.linkZoom}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:text-blue-800 underline flex items-center gap-1"
-        >
-          <ExternalLink className="h-3 w-3" /> Buka Zoom
-        </a>
-      ) : (
-        "-"
+      label: "No Tiket",
+      value: (
+        <span className="text-blue-600 font-semibold">
+          {item.noTiket ?? "-"}
+        </span>
       ),
     },
     {
-      label: "Terakhir Sinkron",
-      value: item.lastSync ? formatDateTime(item.lastSync) : "-",
+      label: "Status",
+      value: <StatusBadge status={item.status} />,
+    },
+    {
+      label: "Link Zoom",
+      value: item.linkZoom ? (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <a
+              href={item.linkZoom}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z"/>
+              </svg>
+              Klik di Sini Untuk Join
+            </a>
+            <button
+              onClick={handleCopy}
+              className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold bg-blue-100 hover:bg-blue-200 text-blue-700 transition-colors border border-blue-200"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+              </svg>
+              {copied ? "Tersalin!" : "Copy Link"}
+            </button>
+          </div>
+          <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 break-all">
+            {item.linkZoom}
+          </div>
+        </div>
+      ) : (
+        <span className="text-slate-400 italic">Belum tersedia</span>
+      ),
+    },
+    { label: "Judul Kegiatan", value: item.judulKegiatan },
+    { label: "Instansi", value: item.instansi },
+    { label: "Nama Pemohon", value: item.namaPemohon },
+    {
+      label: "Tanggal Pelaksanaan",
+      value: item.tanggalPelaksanaan
+        ? new Date(item.tanggalPelaksanaan).toLocaleDateString("id-ID", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })
+        : "-",
+    },
+    { label: "Waktu Mulai", value: item.waktuMulai || "-" },
+    { label: "Lokasi Acara", value: item.lokasiAcara || "-" },
+    { label: "Jumlah Peserta", value: item.jumlahPeserta || "-" },
+    {
+      label: "Keterangan",
+      value: item.perangkatDibutuhkan
+        ? `${item.namaHost ? `Nama host: ${item.namaHost}` : ""}${item.namaHost && item.perangkatDibutuhkan ? " | " : ""}${item.perangkatDibutuhkan ? `Perangkat: ${item.perangkatDibutuhkan}` : ""}`.trim() || "-"
+        : "-",
     },
   ];
 
@@ -291,9 +330,14 @@ function DetailDialog({
         </DialogHeader>
         <div className="divide-y divide-slate-100 mt-2">
           {rows.map(({ label, value }) => (
-            <div key={label} className="grid grid-cols-5 gap-3 py-2.5">
-              <span className="col-span-2 text-sm text-slate-500">{label}</span>
-              <span className="col-span-3 text-sm font-medium text-slate-900 break-words">
+            <div
+              key={label}
+              className={`grid grid-cols-5 gap-3 py-3 ${label === "Link Zoom" && item.linkZoom ? "bg-emerald-50/50 -mx-6 px-6" : ""}`}
+            >
+              <span className="col-span-2 text-sm font-semibold text-slate-700">
+                {label}
+              </span>
+              <span className="col-span-3 text-sm text-slate-900 break-words">
                 {value}
               </span>
             </div>
@@ -344,10 +388,32 @@ export default function VideoConferenceHistory() {
 
         // Map response dari Semantik ke LocalPermohonan
         const mapped = list.map(mapSemantikToPermohonan);
-        setData(mapped);
 
-        // Cache ke localStorage sebagai fallback
-        persistToLocalStorage(mapped);
+        // TAMBAH INI: fetch detail untuk yang disetujui
+        const enriched = await Promise.all(
+          mapped.map(async (item) => {
+            if (item.status === "disetujui" && item.semantikId) {
+              try {
+                const res2 = await fetch(
+                  `/api/teleconference/permohonan/${item.semantikId}`,
+                );
+                if (!res2.ok) return item;
+                const detail = await res2.json();
+                return {
+                  ...item,
+                  linkZoom: detail?.jadwal?.[0]?.linkZoom ?? item.linkZoom,
+                  lastSync: new Date().toISOString(),
+                };
+              } catch {
+                return item;
+              }
+            }
+            return item;
+          }),
+        );
+
+        setData(enriched);
+        persistToLocalStorage(enriched);
       } catch (err) {
         console.error("Fetch error:", err);
         // Fallback ke localStorage jika API gagal
@@ -734,20 +800,6 @@ export default function VideoConferenceHistory() {
                             >
                               <Eye className="h-3.5 w-3.5" /> Detail
                             </button>
-                            {item.semantikId && item.status !== "selesai" && (
-                              <button
-                                onClick={() => syncOne(item)}
-                                disabled={syncingIds.has(item.semantikId!)}
-                                className="inline-flex items-center gap-1 rounded px-2.5 py-1.5 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white transition-colors shadow-sm disabled:opacity-50"
-                              >
-                                <RefreshCw
-                                  className={`h-3.5 w-3.5 ${syncingIds.has(item.semantikId!) ? "animate-spin" : ""}`}
-                                />
-                                {syncingIds.has(item.semantikId!)
-                                  ? "Sync..."
-                                  : "Sync"}
-                              </button>
-                            )}
                           </div>
                         </td>
                       </tr>
