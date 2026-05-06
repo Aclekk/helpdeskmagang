@@ -120,7 +120,7 @@ function mapSemantikToPermohonan(item: SemantikPermohonan): LocalPermohonan {
     nomorTelepon: item.nomorTelepon || "",
     lokasiAcara: item.lokasiAcara || "",
     perangkatDibutuhkan: item.perangkatDibutuhkan || "",
-    namaHost: "",
+    namaHost: parseNamaHost(item.keterangan),
     acaraBerulang: item.isRecurring,
     pengulangan: item.recurrenceFreq as
       | "harian"
@@ -141,6 +141,12 @@ function mapSemantikToPermohonan(item: SemantikPermohonan): LocalPermohonan {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function parseNamaHost(keterangan?: string): string {
+  if (!keterangan) return "";
+  const match = keterangan.match(/Nama host:\s*([^|]+)/);
+  return match ? match[1].trim() : "";
+}
 
 function hitungWaktuSelesai(waktuMulai: string, durasiMenit: number): string {
   if (!waktuMulai) return "";
