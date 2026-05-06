@@ -1,117 +1,217 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowLeft, Plus, Trash2, RotateCcw, Save } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { ArrowLeft, RotateCcw, Send, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-interface RepositoryGitFormProps {
+interface ProfilAplikasiSPBEFormProps {
   onBack: () => void;
 }
 
-interface PersonilRow {
-  id: string;
-  namaPersonil: string;
-  usernameGitlab: string;
-  keterangan: string;
+type JenisAplikasi = "manajemen" | "layanan" | "baru" | "fitur";
+
+interface SpesifikasiTeknis {
+  bahasaPemrograman: string;
+  framework: string;
+  database: string;
+  webServer: string;
+  modulLainnya: string;
 }
 
 interface FormData {
-  namaPekerjaan: string;
-  namaRepository: string;
-  tanggalMulai: string;
-  tanggalSelesai: string;
-  rincianPekerjaan: string;
-  perusahaan: string;
-  alamat: string;
-  penanggungJawab: string;
-  personilList: PersonilRow[];
+  namaAplikasi: string;
+  jenisAplikasi: JenisAplikasi | "";
+  unitKerjaPengelola: string;
+  unitKerjaPengelolaId: string;
+  picNama: string;
+  picNomorKontak: string;
+  subdomain: string;
+  spesifikasiTeknis: SpesifikasiTeknis;
+  tanggalPermohonan: string;
+  tanggalRencanaPublikasi: string;
 }
 
-export default function RepositoryGitForm({ onBack }: RepositoryGitFormProps) {
-  const { toast } = useToast();
+interface Instansi {
+  idUnor: string;
+  namaUnor: string;
+  namaUnorAlias: string;
+}
 
-  const [formData, setFormData] = useState<FormData>({
-    namaPekerjaan: "",
-    namaRepository: "",
-    tanggalMulai: "",
-    tanggalSelesai: "",
-    rincianPekerjaan: "",
-    perusahaan: "Konsultan Perorangan/PT",
-    alamat: "",
-    penanggungJawab: "",
-    personilList: [
-      { id: "1", namaPersonil: "", usernameGitlab: "", keterangan: "" },
-      { id: "2", namaPersonil: "", usernameGitlab: "", keterangan: "" },
-      { id: "3", namaPersonil: "", usernameGitlab: "", keterangan: "" },
-      { id: "4", namaPersonil: "", usernameGitlab: "", keterangan: "" },
-      { id: "5", namaPersonil: "", usernameGitlab: "", keterangan: "" },
-    ],
-  });
+const initialForm: FormData = {
+  namaAplikasi: "",
+  jenisAplikasi: "",
+  unitKerjaPengelola: "",
+  unitKerjaPengelolaId: "",
+  picNama: "",
+  picNomorKontak: "",
+  subdomain: "",
+  spesifikasiTeknis: {
+    bahasaPemrograman: "",
+    framework: "",
+    database: "",
+    webServer: "",
+    modulLainnya: "",
+  },
+  tanggalPermohonan: "",
+  tanggalRencanaPublikasi: "",
+};
+
+const jenisOptions: { value: JenisAplikasi; label: string }[] = [
+  { value: "manajemen", label: "Manajemen Pemerintahan" },
+  { value: "layanan", label: "Layanan Publik" },
+  { value: "baru", label: "Aplikasi Baru" },
+  { value: "fitur", label: "Penambahan Fitur / Modul" },
+];
+
+const inputClass =
+  "block w-full h-12 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-200 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white dark:placeholder:text-slate-500 dark:hover:border-slate-600 dark:focus:border-blue-500 dark:focus:ring-blue-900/30";
+
+const labelClass = "block text-sm font-semibold text-slate-900 dark:text-white";
+
+export default function ProfilAplikasiSPBEForm({
+  onBack,
+}: ProfilAplikasiSPBEFormProps) {
+  const { toast } = useToast();
+  const [formData, setFormData] = useState<FormData>(initialForm);
+  const [loading, setLoading] = useState(false);
+
+  // Instansi state
+  const [instansiList, setInstansiList] = useState<Instansi[]>([]);
+  const [instansiLoading, setInstansiLoading] = useState(false);
+  const [instansiError, setInstansiError] = useState(false);
+
+  // Signature canvas
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isDrawing = useRef(false);
+  const [hasSignature, setHasSignature] = useState(false);
+
+  // Fetch instansi on mount
+  useEffect(() => {
+    const fetchInstansi = async () => {
+      setInstansiLoading(true);
+      setInstansiError(false);
+      try {
+        const res = await fetch("/api/instansi");
+        if (!res.ok) throw new Error("Gagal mengambil data instansi");
+        const data: Instansi[] = await res.json();
+        setInstansiList(data);
+      } catch {
+        setInstansiError(true);
+        toast({
+          variant: "destructive",
+          title: "Gagal memuat data instansi",
+          description: "Silakan refresh halaman dan coba lagi",
+        });
+      } finally {
+        setInstansiLoading(false);
+      }
+    };
+    fetchInstansi();
+  }, []);
+
+  // Canvas setup
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.strokeStyle = "#1e293b";
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+  }, []);
+
+  const getPos = (
+    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
+  ) => {
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    if ("touches" in e) {
+      return {
+        x: (e.touches[0].clientX - rect.left) * scaleX,
+        y: (e.touches[0].clientY - rect.top) * scaleY,
+      };
+    }
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
+    };
+  };
+
+  const startDraw = (
+    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
+  ) => {
+    e.preventDefault();
+    isDrawing.current = true;
+    const canvas = canvasRef.current!;
+    const ctx = canvas.getContext("2d")!;
+    const { x, y } = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const draw = (
+    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
+  ) => {
+    e.preventDefault();
+    if (!isDrawing.current) return;
+    const canvas = canvasRef.current!;
+    const ctx = canvas.getContext("2d")!;
+    const { x, y } = getPos(e);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    setHasSignature(true);
+  };
+
+  const stopDraw = () => {
+    isDrawing.current = false;
+  };
+
+  const clearSignature = () => {
+    const canvas = canvasRef.current!;
+    const ctx = canvas.getContext("2d")!;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setHasSignature(false);
+  };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePersonilChange = (
-    id: string,
-    field: keyof PersonilRow,
-    value: string,
+  const handleSpesifikasiChange = (
+    e: React.ChangeEvent<HTMLInputElement>
   ) => {
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      personilList: prev.personilList.map((row) =>
-        row.id === id ? { ...row, [field]: value } : row,
-      ),
+      spesifikasiTeknis: { ...prev.spesifikasiTeknis, [name]: value },
     }));
   };
 
-  const handleAddRow = () => {
-    const newId = String(formData.personilList.length + 1);
+  const handleSelectInstansi = (namaUnor: string) => {
+    const selected = instansiList.find((i) => i.namaUnor === namaUnor);
     setFormData((prev) => ({
       ...prev,
-      personilList: [
-        ...prev.personilList,
-        { id: newId, namaPersonil: "", usernameGitlab: "", keterangan: "" },
-      ],
+      unitKerjaPengelola: namaUnor,
+      unitKerjaPengelolaId: selected?.idUnor ?? "",
     }));
-  };
-
-  const handleRemoveRow = () => {
-    if (formData.personilList.length > 1) {
-      setFormData((prev) => ({
-        ...prev,
-        personilList: prev.personilList.slice(0, -1),
-      }));
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Tidak bisa menghapus",
-        description: "Minimal harus ada 1 baris personil",
-      });
-    }
   };
 
   const handleReset = () => {
-    setFormData({
-      namaPekerjaan: "",
-      namaRepository: "",
-      tanggalMulai: "",
-      tanggalSelesai: "",
-      rincianPekerjaan: "",
-      perusahaan: "Konsultan Perorangan/PT",
-      alamat: "",
-      penanggungJawab: "",
-      personilList: [
-        { id: "1", namaPersonil: "", usernameGitlab: "", keterangan: "" },
-        { id: "2", namaPersonil: "", usernameGitlab: "", keterangan: "" },
-        { id: "3", namaPersonil: "", usernameGitlab: "", keterangan: "" },
-        { id: "4", namaPersonil: "", usernameGitlab: "", keterangan: "" },
-        { id: "5", namaPersonil: "", usernameGitlab: "", keterangan: "" },
-      ],
-    });
+    setFormData(initialForm);
+    clearSignature();
     toast({
       title: "Form direset",
       description: "Semua field telah dikosongkan",
@@ -120,29 +220,24 @@ export default function RepositoryGitForm({ onBack }: RepositoryGitFormProps) {
 
   const handleCancel = () => {
     const hasData =
-      formData.namaPekerjaan !== "" ||
-      formData.namaRepository !== "" ||
-      formData.personilList.some(
-        (p) => p.namaPersonil || p.usernameGitlab || p.keterangan,
-      );
+      formData.namaAplikasi !== "" ||
+      formData.jenisAplikasi !== "" ||
+      formData.unitKerjaPengelola !== "";
 
     if (hasData) {
       const confirmed = confirm(
-        "Data yang sudah diisi akan hilang. Yakin ingin membatalkan?",
+        "Data yang sudah diisi akan hilang. Yakin ingin membatalkan?"
       );
-      if (confirmed) {
-        onBack();
-      }
+      if (confirmed) onBack();
     } else {
       onBack();
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validasi field required
-    if (!formData.namaPekerjaan || !formData.namaRepository) {
+    if (!formData.namaAplikasi || !formData.jenisAplikasi) {
       toast({
         variant: "destructive",
         title: "Form belum lengkap",
@@ -151,18 +246,31 @@ export default function RepositoryGitForm({ onBack }: RepositoryGitFormProps) {
       return;
     }
 
-    // TODO: Kirim data ke backend/API
-    console.log("Form submitted:", formData);
+    if (!hasSignature) {
+      toast({
+        variant: "destructive",
+        title: "Tanda tangan belum diisi",
+        description: "Mohon bubuhkan tanda tangan Anda terlebih dahulu",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    const signatureDataUrl = canvasRef.current?.toDataURL("image/png");
+
+    // TODO: Kirim data ke API
+    await new Promise((res) => setTimeout(res, 1000));
+
+    console.log("Form submitted:", { ...formData, signature: signatureDataUrl });
 
     toast({
-      title: "Pengajuan berhasil disimpan!",
-      description: "Pengajuan repository Anda sedang diproses",
+      title: "Data telah terkirim!",
+      description: "Permohonan profil aplikasi SPBE Anda sedang diproses.",
     });
 
-    // Kembali ke list
-    setTimeout(() => {
-      onBack();
-    }, 1500);
+    setLoading(false);
+    setTimeout(() => onBack(), 1500);
   };
 
   return (
@@ -170,7 +278,6 @@ export default function RepositoryGitForm({ onBack }: RepositoryGitFormProps) {
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Page Header */}
         <div className="space-y-3">
-          {/* Back Button - Style seperti SubdomainForm */}
           <button
             onClick={onBack}
             className="group mb-4 inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-all hover:bg-blue-100 hover:text-blue-700 hover:shadow-md dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-blue-950 dark:hover:text-blue-400"
@@ -178,18 +285,17 @@ export default function RepositoryGitForm({ onBack }: RepositoryGitFormProps) {
             <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
             Kembali ke Daftar Layanan
           </button>
-          
           <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Form Pengajuan Repository
+            Form Pengajuan Profil Aplikasi SPBE
           </h1>
           <p className="text-base text-slate-600 dark:text-slate-400">
-            Lengkapi formulir untuk mengajukan akses repository baru
+            Lengkapi formulir profil aplikasi untuk keperluan pendaftaran SPBE
           </p>
         </div>
 
         {/* Main Form Card */}
         <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xl shadow-slate-200/50 dark:border-slate-800/80 dark:bg-slate-900/95 dark:shadow-slate-950/50">
-          {/* Top Accent Border - Blue */}
+          {/* Top Accent Border */}
           <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-blue-600 to-blue-500" />
 
           {/* Card Header */}
@@ -197,10 +303,10 @@ export default function RepositoryGitForm({ onBack }: RepositoryGitFormProps) {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-1">
                 <h2 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">
-                  Form Pengajuan Repository
+                  A. Profil Aplikasi SPBE
                 </h2>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Isi semua informasi yang diperlukan dengan lengkap
+                <p className="text-sm text-slate-500 dark:text-slate-400 italic">
+                  Diisi oleh Pemohon
                 </p>
               </div>
               <button
@@ -217,246 +323,305 @@ export default function RepositoryGitForm({ onBack }: RepositoryGitFormProps) {
           {/* Form Content */}
           <div className="px-8 py-10">
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Info Text */}
-              <div className="rounded-xl border-2 border-blue-200/80 bg-gradient-to-r from-blue-50/80 to-blue-100/40 p-5 dark:border-blue-900/50 dark:from-blue-950/40 dark:to-blue-900/20">
-                <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300 font-medium">
-                  Berdasarkan keperluan penggunaan hak akses logikal ke
-                  repository / server milik DISKOMINFO Pemerintah Kota Tangerang
-                  untuk pekerjaan sebagai berikut:
+
+              {/* Nama Aplikasi */}
+              <div className="space-y-2.5">
+                <label className={labelClass}>
+                  Nama Aplikasi <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="namaAplikasi"
+                  value={formData.namaAplikasi}
+                  onChange={handleInputChange}
+                  placeholder="Masukkan nama aplikasi"
+                  className={inputClass}
+                  required
+                />
+              </div>
+
+              {/* Jenis Aplikasi — Single Select (Radio) */}
+              <div className="space-y-3">
+                <label className={labelClass}>
+                  Jenis Aplikasi <span className="text-red-500">*</span>
+                </label>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Pilih salah satu jenis aplikasi
                 </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {jenisOptions.map((opt) => {
+                    const selected = formData.jenisAplikasi === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            jenisAplikasi: opt.value,
+                          }))
+                        }
+                        className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3.5 text-sm font-medium text-left transition-all duration-200 ${
+                          selected
+                            ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm shadow-blue-100 dark:border-blue-500 dark:bg-blue-950/40 dark:text-blue-300 dark:shadow-none"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300 dark:hover:border-slate-600"
+                        }`}
+                      >
+                        {/* Radio visual */}
+                        <span
+                          className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                            selected
+                              ? "border-blue-500 bg-white dark:border-blue-400"
+                              : "border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-800"
+                          }`}
+                        >
+                          {selected && (
+                            <span className="h-2.5 w-2.5 rounded-full bg-blue-500 dark:bg-blue-400" />
+                          )}
+                        </span>
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Nama Pekerjaan */}
+              {/* Unit Kerja Pengelola — Select sama seperti zoom */}
               <div className="space-y-2.5">
-                <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                  Nama Pekerjaan:
-                </label>
-                <input
-                  type="text"
-                  name="namaPekerjaan"
-                  value={formData.namaPekerjaan}
-                  onChange={handleInputChange}
-                  className="block w-full h-12 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-200 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white dark:placeholder:text-slate-500 dark:hover:border-slate-600 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
-                  required
-                />
+                <label className={labelClass}>Unit Kerja Pengelola</label>
+                <Select
+                  value={formData.unitKerjaPengelola}
+                  onValueChange={handleSelectInstansi}
+                  disabled={instansiLoading || instansiError}
+                >
+                  <SelectTrigger className="h-12 rounded-xl border-2 border-slate-200 dark:border-slate-700">
+                    <SelectValue
+                      placeholder={
+                        instansiLoading
+                          ? "Memuat instansi..."
+                          : instansiError
+                          ? "Gagal memuat data instansi"
+                          : "Pilih unit kerja pengelola"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {instansiLoading ? (
+                      <SelectItem value="_loading" disabled>
+                        Memuat data instansi...
+                      </SelectItem>
+                    ) : instansiList.length > 0 ? (
+                      instansiList.map((item) => (
+                        <SelectItem key={item.idUnor} value={item.namaUnor}>
+                          {item.namaUnor}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="_empty" disabled>
+                        Tidak ada data instansi
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Nama Repository */}
+              {/* PIC / Pengelola Teknis */}
               <div className="space-y-2.5">
-                <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                  Nama Repository:
-                </label>
-                <input
-                  type="text"
-                  name="namaRepository"
-                  value={formData.namaRepository}
-                  onChange={handleInputChange}
-                  className="block w-full h-12 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-200 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white dark:placeholder:text-slate-500 dark:hover:border-slate-600 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
-                  required
-                />
-              </div>
-
-              {/* Periode Bekerja */}
-              <div className="space-y-2.5">
-                <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                  Periode Bekerja:
+                <label className={labelClass}>
+                  PIC / Pengelola Teknis Aplikasi SPBE
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
-                      Tanggal Mulai:
+                      Nama PIC:
                     </label>
                     <input
-                      type="date"
-                      name="tanggalMulai"
-                      value={formData.tanggalMulai}
+                      type="text"
+                      name="picNama"
+                      value={formData.picNama}
                       onChange={handleInputChange}
-                      className="block w-full h-12 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all duration-200 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white dark:hover:border-slate-600 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
+                      placeholder="Nama pengelola teknis"
+                      className={inputClass}
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
-                      Tanggal Selesai:
+                      Nomor Kontak:
                     </label>
                     <input
-                      type="date"
-                      name="tanggalSelesai"
-                      value={formData.tanggalSelesai}
+                      type="text"
+                      name="picNomorKontak"
+                      value={formData.picNomorKontak}
                       onChange={handleInputChange}
-                      className="block w-full h-12 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all duration-200 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white dark:hover:border-slate-600 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
+                      placeholder="Nomor kontak"
+                      className={inputClass}
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Rincian Pekerjaan */}
+              {/* Subdomain */}
               <div className="space-y-2.5">
-                <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                  Rincian Pekerjaan:
-                </label>
-                <textarea
-                  name="rincianPekerjaan"
-                  value={formData.rincianPekerjaan}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="block min-h-[96px] w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none resize-none transition-all duration-200 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white dark:placeholder:text-slate-500 dark:hover:border-slate-600 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
-                />
-              </div>
-
-              {/* Divider */}
-              <div className="border-t-2 border-slate-200/80 dark:border-slate-800/80 pt-8">
-                <p className="text-sm font-semibold text-slate-900 dark:text-white mb-6">
-                  Maka dimohon untuk memberikan hak akses logikal kepada:
-                </p>
-              </div>
-
-              {/* Perusahaan */}
-              <div className="space-y-2.5">
-                <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                  Perusahaan:
-                </label>
+                <label className={labelClass}>Subdomain</label>
                 <input
                   type="text"
-                  name="perusahaan"
-                  value={formData.perusahaan}
+                  name="subdomain"
+                  value={formData.subdomain}
                   onChange={handleInputChange}
-                  className="block w-full h-12 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-200 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white dark:placeholder:text-slate-500 dark:hover:border-slate-600 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
+                  placeholder="contoh: aplikasi.tangerangkota.go.id"
+                  className={inputClass}
                 />
               </div>
 
-              {/* Alamat */}
-              <div className="space-y-2.5">
-                <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                  Alamat:
+              {/* Spesifikasi Teknis */}
+              <div className="space-y-4">
+                <label className={labelClass}>
+                  Spesifikasi Teknis Aplikasi SPBE
                 </label>
-                <input
-                  type="text"
-                  name="alamat"
-                  value={formData.alamat}
-                  onChange={handleInputChange}
-                  className="block w-full h-12 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-200 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white dark:placeholder:text-slate-500 dark:hover:border-slate-600 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
-                />
-              </div>
-
-              {/* Penanggung Jawab */}
-              <div className="space-y-2.5">
-                <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                  Penanggung jawab:
-                </label>
-                <input
-                  type="text"
-                  name="penanggungJawab"
-                  value={formData.penanggungJawab}
-                  onChange={handleInputChange}
-                  className="block w-full h-12 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-200 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white dark:placeholder:text-slate-500 dark:hover:border-slate-600 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
-                />
-              </div>
-
-              {/* Divider */}
-              <div className="border-t-2 border-slate-200/80 dark:border-slate-800/80 pt-8">
-                <p className="text-sm font-semibold text-slate-900 dark:text-white mb-6">
-                  Adapun nama Personil yang akan mengakses repository / server
-                  milik DISKOMINFO Pemerintah Kota Tangerang adalah sebagai
-                  berikut:
-                </p>
-              </div>
-
-              {/* Tabel Personil */}
-              <div className="overflow-hidden rounded-xl border-2 border-slate-200/80 dark:border-slate-700/80 shadow-sm">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-800/50 border-b-2 border-slate-200/80 dark:border-slate-700/80">
-                        <th className="px-5 py-4 text-left text-sm font-semibold text-slate-900 dark:text-white w-20">
-                          No.
-                        </th>
-                        <th className="px-5 py-4 text-left text-sm font-semibold text-slate-900 dark:text-white">
-                          Nama Personil
-                        </th>
-                        <th className="px-5 py-4 text-left text-sm font-semibold text-slate-900 dark:text-white">
-                          Username Gitlab
-                        </th>
-                        <th className="px-5 py-4 text-left text-sm font-semibold text-slate-900 dark:text-white">
-                          Keterangan
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200/60 dark:divide-slate-700/60">
-                      {formData.personilList.map((row, index) => (
-                        <tr
-                          key={row.id}
-                          className="bg-white dark:bg-slate-900/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
-                        >
-                          <td className="px-5 py-4 text-sm font-medium text-slate-700 dark:text-slate-300">
-                            {index + 1}
-                          </td>
-                          <td className="px-5 py-4">
-                            <input
-                              type="text"
-                              value={row.namaPersonil}
-                              onChange={(e) =>
-                                handlePersonilChange(
-                                  row.id,
-                                  "namaPersonil",
-                                  e.target.value,
-                                )
-                              }
-                              className="block w-full h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-all duration-150 hover:border-slate-400 focus:border-blue-500 focus:ring-3 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800/80 dark:text-white dark:hover:border-slate-500 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
-                            />
-                          </td>
-                          <td className="px-5 py-4">
-                            <input
-                              type="text"
-                              value={row.usernameGitlab}
-                              onChange={(e) =>
-                                handlePersonilChange(
-                                  row.id,
-                                  "usernameGitlab",
-                                  e.target.value,
-                                )
-                              }
-                              className="block w-full h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-all duration-150 hover:border-slate-400 focus:border-blue-500 focus:ring-3 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800/80 dark:text-white dark:hover:border-slate-500 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
-                            />
-                          </td>
-                          <td className="px-5 py-4">
-                            <input
-                              type="text"
-                              value={row.keterangan}
-                              onChange={(e) =>
-                                handlePersonilChange(
-                                  row.id,
-                                  "keterangan",
-                                  e.target.value,
-                                )
-                              }
-                              className="block w-full h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-all duration-150 hover:border-slate-400 focus:border-blue-500 focus:ring-3 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800/80 dark:text-white dark:hover:border-slate-500 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
-                            />
-                          </td>
+                <div className="overflow-hidden rounded-xl border-2 border-slate-200/80 dark:border-slate-700/80 shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-800/50 border-b-2 border-slate-200/80 dark:border-slate-700/80">
+                          <th className="px-5 py-4 text-left text-sm font-semibold text-slate-900 dark:text-white w-1/3">
+                            Komponen
+                          </th>
+                          <th className="px-5 py-4 text-left text-sm font-semibold text-slate-900 dark:text-white">
+                            Keterangan
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200/60 dark:divide-slate-700/60">
+                        {[
+                          {
+                            label: "a. Bahasa Pemrograman",
+                            name: "bahasaPemrograman",
+                            placeholder: "contoh: PHP, Python, JavaScript",
+                          },
+                          {
+                            label: "b. Framework",
+                            name: "framework",
+                            placeholder: "contoh: Laravel, Django, Next.js",
+                          },
+                          {
+                            label: "c. Database",
+                            name: "database",
+                            placeholder: "contoh: MySQL, PostgreSQL",
+                          },
+                          {
+                            label: "d. Web Server",
+                            name: "webServer",
+                            placeholder: "contoh: Apache, Nginx",
+                          },
+                          {
+                            label: "e. Modul lainnya",
+                            name: "modulLainnya",
+                            placeholder: "Modul atau teknologi tambahan lainnya",
+                          },
+                        ].map((row) => (
+                          <tr
+                            key={row.name}
+                            className="bg-white dark:bg-slate-900/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
+                          >
+                            <td className="px-5 py-4 text-sm font-medium text-slate-700 dark:text-slate-300 italic">
+                              {row.label}
+                            </td>
+                            <td className="px-5 py-4">
+                              <input
+                                type="text"
+                                name={row.name}
+                                value={
+                                  formData.spesifikasiTeknis[
+                                    row.name as keyof SpesifikasiTeknis
+                                  ]
+                                }
+                                onChange={handleSpesifikasiChange}
+                                placeholder={row.placeholder}
+                                className="block w-full h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-150 hover:border-slate-400 focus:border-blue-500 focus:ring-3 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800/80 dark:text-white dark:placeholder:text-slate-500 dark:hover:border-slate-500 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
 
-              {/* Buttons Tambah/Hapus Baris */}
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={handleAddRow}
-                  className="inline-flex h-11 items-center gap-2 rounded-lg border-2 border-blue-300 bg-white px-5 font-medium text-blue-600 shadow-sm transition-all duration-200 hover:border-blue-400 hover:bg-blue-50 hover:shadow-md active:scale-98 dark:border-blue-800 dark:bg-slate-800/80 dark:text-blue-400 dark:hover:border-blue-700 dark:hover:bg-blue-950/40"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span className="text-sm">Tambah Baris</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleRemoveRow}
-                  className="inline-flex h-11 items-center gap-2 rounded-lg border-2 border-red-300 bg-white px-5 font-medium text-red-600 shadow-sm transition-all duration-200 hover:border-red-400 hover:bg-red-50 hover:shadow-md active:scale-98 dark:border-red-800 dark:bg-slate-800/80 dark:text-red-400 dark:hover:border-red-700 dark:hover:bg-red-950/40"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span className="text-sm">Hapus Baris</span>
-                </button>
+              {/* Tanggal */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-2.5">
+                  <label className={labelClass}>Tanggal Permohonan</label>
+                  <input
+                    type="date"
+                    name="tanggalPermohonan"
+                    value={formData.tanggalPermohonan}
+                    onChange={handleInputChange}
+                    className={inputClass}
+                  />
+                </div>
+                <div className="space-y-2.5">
+                  <label className={labelClass}>
+                    Tanggal Rencana Dipublikasikan
+                  </label>
+                  <input
+                    type="date"
+                    name="tanggalRencanaPublikasi"
+                    value={formData.tanggalRencanaPublikasi}
+                    onChange={handleInputChange}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              {/* Tanda Tangan */}
+              <div className="rounded-xl border-2 border-slate-200/80 bg-slate-50/60 dark:border-slate-700/80 dark:bg-slate-800/30 p-6 space-y-4">
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 text-center">
+                  Pemohon,
+                </p>
+                <div className="flex flex-col items-center gap-3">
+                  <div className="relative w-full max-w-sm">
+                    <canvas
+                      ref={canvasRef}
+                      width={480}
+                      height={160}
+                      onMouseDown={startDraw}
+                      onMouseMove={draw}
+                      onMouseUp={stopDraw}
+                      onMouseLeave={stopDraw}
+                      onTouchStart={startDraw}
+                      onTouchMove={draw}
+                      onTouchEnd={stopDraw}
+                      className={`w-full rounded-xl border-2 cursor-crosshair bg-white touch-none transition-colors duration-200 ${
+                        hasSignature
+                          ? "border-blue-400 dark:border-blue-500"
+                          : "border-dashed border-slate-300 dark:border-slate-600"
+                      }`}
+                      style={{ height: "160px" }}
+                    />
+                    {!hasSignature && (
+                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                        <p className="text-xs text-slate-400 dark:text-slate-500 select-none">
+                          Tanda tangan di sini
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={clearSignature}
+                    disabled={!hasSignature}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-all hover:border-red-300 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-red-700 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Hapus Tanda Tangan
+                  </button>
+
+                  <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+                    (Tanda tangan & nama terang)
+                  </p>
+                </div>
               </div>
 
               {/* Action Buttons */}
@@ -480,12 +645,17 @@ export default function RepositoryGitForm({ onBack }: RepositoryGitFormProps) {
                 </div>
                 <button
                   type="submit"
-                  className="group relative inline-flex h-12 items-center gap-2.5 overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-8 font-semibold text-white shadow-lg shadow-blue-600/30 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-blue-600/40 active:scale-100 dark:from-blue-600 dark:to-blue-700 dark:shadow-blue-500/20 dark:hover:shadow-blue-500/30"
+                  disabled={loading}
+                  className="group relative inline-flex h-12 items-center gap-2.5 overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-8 font-semibold text-white shadow-lg shadow-blue-600/30 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-blue-600/40 active:scale-100 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 dark:from-blue-600 dark:to-blue-700 dark:shadow-blue-500/20"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                  <Save className="relative z-10 h-4 w-4" />
+                  {loading ? (
+                    <Loader2 className="relative z-10 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="relative z-10 h-4 w-4" />
+                  )}
                   <span className="relative z-10 text-sm">
-                    Simpan Pengajuan
+                    {loading ? "Mengirim..." : "Kirim Permohonan"}
                   </span>
                 </button>
               </div>
@@ -516,9 +686,9 @@ export default function RepositoryGitForm({ onBack }: RepositoryGitFormProps) {
                 Penting!
               </h4>
               <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-400">
-                Pastikan semua informasi yang Anda masukkan sudah benar. Data
-                yang sudah disubmit tidak dapat diubah dan akan langsung
-                diproses oleh tim IT.
+                Pastikan semua informasi yang Anda masukkan sudah benar dan
+                sesuai. Data yang sudah disubmit akan langsung diproses oleh
+                tim pengelola SPBE.
               </p>
             </div>
           </div>

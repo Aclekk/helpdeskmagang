@@ -36,20 +36,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/services/[id]/page.js"
     ],
-    "/request/[id]/page": [
+    "/request/repository-git/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/request/[id]/page.js"
-    ],
-    "/request/video-conference/history/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/request/video-conference/history/page.js"
-    ],
-    "/_not-found/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
+      "static/chunks/app/request/repository-git/page.js"
     ]
   }
 }

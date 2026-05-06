@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     const basicPass = process.env.OPENDATA_BASIC_PASS;
     const endpoint =
       process.env.OPENDATA_LOGIN_URL ??
-      "https://opendatav2.tangerangkota.go.id/services/auth/login_v2";
+      "https://opendatav2.tan04rangkota.go.id/services/auth/login_v2";
 
     if (!basicUser || !basicPass) {
       return NextResponse.json(

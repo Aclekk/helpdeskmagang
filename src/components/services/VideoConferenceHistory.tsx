@@ -272,8 +272,13 @@ function DetailDialog({
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z" />
               </svg>
               Klik di Sini Untuk Join
             </a>
@@ -281,9 +286,16 @@ function DetailDialog({
               onClick={handleCopy}
               className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold bg-blue-100 hover:bg-blue-200 text-blue-700 transition-colors border border-blue-200"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
               </svg>
               {copied ? "Tersalin!" : "Copy Link"}
             </button>
@@ -315,7 +327,8 @@ function DetailDialog({
     {
       label: "Keterangan",
       value: item.perangkatDibutuhkan
-        ? `${item.namaHost ? `Nama host: ${item.namaHost}` : ""}${item.namaHost && item.perangkatDibutuhkan ? " | " : ""}${item.perangkatDibutuhkan ? `Perangkat: ${item.perangkatDibutuhkan}` : ""}`.trim() || "-"
+        ? `${item.namaHost ? `Nama host: ${item.namaHost}` : ""}${item.namaHost && item.perangkatDibutuhkan ? " | " : ""}${item.perangkatDibutuhkan ? `Perangkat: ${item.perangkatDibutuhkan}` : ""}`.trim() ||
+          "-"
         : "-",
     },
   ];
