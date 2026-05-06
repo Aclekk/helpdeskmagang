@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import Link from "next/link";
 import {
   Select,
   SelectContent,
@@ -203,9 +204,20 @@ export default function VpnRequestForm({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
-        Formulir Permohonan VPN Pemerintah Kota Tangerang
-      </h1>
+     <div className="flex items-start justify-between gap-4">
+  <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
+    Formulir Permohonan VPN Pemerintah Kota Tangerang
+  </h1>
+  <Link
+    href="/request/vpn/history"
+    className="flex-shrink-0 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition-all hover:bg-blue-100 hover:shadow-md dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400 dark:hover:bg-blue-900"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/>
+    </svg>
+    Lihat Riwayat
+  </Link>
+</div>
 
       {submitStatus === "success" && (
         <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200">
