@@ -3,19 +3,19 @@ import { getSemantikToken } from "@/lib/semantik";
 
 export async function POST(req: NextRequest) {
   try {
-    const token = await getSemantikToken();
-    const baseUrl = process.env.SEMANTIK_API_BASE_URL;
-    if (!baseUrl) throw new Error("SEMANTIK_API_BASE_URL belum dikonfigurasi");
+    // ← pakai legacy token untuk lokal, fallback ke OIDC
+    const legacyToken = process.env.SEMANTIK_LEGACY_TOKEN;
+    const token = await getSemantikToken(); // ← balik ke OIDC
+const baseUrl = process.env.SEMANTIK_LOCAL_BASE_URL ?? process.env.SEMANTIK_API_BASE_URL;
+    if (!baseUrl) throw new Error("SEMANTIK_LOCAL_BASE_URL belum dikonfigurasi");
 
     const formData = await req.formData();
 
-    // DEBUG: log semua field yang diterima dari client
     console.log("[DEBUG] FormData received from client:");
     for (const [key, value] of formData.entries()) {
       if (key !== "signature") console.log(`  ${key}: "${value}"`);
     }
 
-    // Validasi field wajib
     const required = [
       "tanggalPermohonan",
       "jenisPermohonan",
@@ -37,7 +37,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Build FormData untuk dikirim ke Semantik
     const outForm = new FormData();
 
     const textFields = [
@@ -61,13 +60,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // DEBUG: log semua field yang akan dikirim ke Semantik
-    console.log("[DEBUG] FormData yang dikirim ke Semantik:");
+    console.log("[DEBUG] FormData yang dikirim ke Semantik LOKAL:");
     for (const [key, value] of outForm.entries()) {
       if (key !== "signature") console.log(`  ${key}: "${value}"`);
     }
 
-    // Signature: base64 string ke Blob binary
     const signatureRaw = formData.get("signature");
     if (signatureRaw && typeof signatureRaw === "string") {
       const base64Data = signatureRaw.replace(/^data:image\/\w+;base64,/, "");
@@ -76,8 +73,7 @@ export async function POST(req: NextRequest) {
       outForm.append("signature", blob, "signature.png");
     }
 
-    // Kirim ke server Semantik
-    const response = await fetch(`${baseUrl}/vpn`, {
+    const response = await fetch(`${baseUrl.replace(/\/$/, "")}/vpn`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -96,7 +92,7 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       console.error(
-        "[API] POST /vpn Semantik error:",
+        "[API] POST /vpn Semantik LOKAL error:",
         response.status,
         responseText,
       );

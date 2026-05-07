@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { getPermohonanById } from "@/lib/semantik";
+import { getPermohonanByIdLocal } from "@/lib/semantik"; // ← ganti ke lokal
 
 export async function GET(
   _request: Request,
@@ -22,7 +22,7 @@ export async function GET(
       );
     }
 
-    const result = await getPermohonanById(id);
+    const result = await getPermohonanByIdLocal(id); // ← ganti ke lokal
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {

@@ -1,12 +1,12 @@
 /**
  * Semantik API Client
  *
- * Endpoints yang digunakan:
- * - OIDC Token  : POST https://auth.tangerangkota.go.id/realms/semantik/protocol/openid-connect/token
- * - Cek Pegawai : POST {api_base_url}/pegawai/ceknip
- * - Submit Permohonan : POST {api_base_url}/teleconference/permohonan
- * - Get Permohonan by ID : GET {api_base_url}/teleconference/permohonan/{id}
- * - Get All Permohonan : GET {api_base_url}/teleconference/permohonan
+ * - Cek Pegawai : POST {api_base_url}/pegawai/ceknip → LIVE
+ * - Get Instansi : GET {api_base_url}/instansi → LIVE
+ * - Get All Permohonan : GET {api_base_url}/teleconference/permohonan → LIVE
+ * - Get Permohonan by ID : GET {api_base_url}/teleconference/permohonan/{id} → LIVE
+ * - Submit Permohonan : POST {local_base_url}/teleconference/permohonan → LOKAL
+ * - Get Permohonan by ID (lokal) : GET {local_base_url}/teleconference/permohonan/{id} → LOKAL
  */
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -22,7 +22,6 @@ export interface SemantikTokenResponse {
 export interface PegawaiResponse {
   status?: boolean;
   message?: string;
-  // Field langsung dari OpenData/Semantik
   id?: string;
   id_pegawai?: string;
   nip?: string;
@@ -34,7 +33,6 @@ export interface PegawaiResponse {
   nomor_hp?: string;
   email?: string;
   foto?: string;
-  // fallback wrapped response
   data?: {
     nama_pegawai?: string;
     whatsapp?: string;
@@ -46,9 +44,8 @@ export interface PegawaiResponse {
   };
 }
 
-// ─── Request body untuk POST /teleconference/permohonan ──────────────────────
 export interface PermohonanRequest {
-  tanggalPermohonan: string; // "YYYY-MM-DD"
+  tanggalPermohonan: string;
   instansi: string;
   kodeUnor?: string;
   namaPemohon: string;
@@ -57,8 +54,8 @@ export interface PermohonanRequest {
   nomorTelepon?: string;
   judulKegiatan: string;
   lokasiAcara?: string;
-  tanggalPelaksanaan: string; // "YYYY-MM-DD"
-  waktuMulai: string; // "HH:mm"
+  tanggalPelaksanaan: string;
+  waktuMulai: string;
   durasiMenit: number;
   jumlahPeserta: string;
   perangkatDibutuhkan?: string;
@@ -73,13 +70,11 @@ export interface PermohonanRequest {
   jumlahPenyelenggaraan?: number;
 }
 
-// ─── Response POST /teleconference/permohonan ────────────────────────────────
 export interface PermohonanResponse {
   id?: number;
   noTiket?: string;
   status?: string;
   message?: string;
-  // fallback jika server wrap dalam { status, data }
   data?: {
     id?: number;
     noTiket?: string;
@@ -87,7 +82,6 @@ export interface PermohonanResponse {
   };
 }
 
-// ─── Response GET /teleconference/permohonan/{id} ────────────────────────────
 export interface JadwalItem {
   id: number;
   permohonanId: number;
@@ -131,6 +125,7 @@ export interface PermohonanDetail {
   updatedAt: string;
   jadwal: JadwalItem[];
 }
+
 export interface InstansiItem {
   idUnor: string;
   jenis: string;
@@ -140,31 +135,26 @@ export interface InstansiItem {
   kodeEse?: string;
   namaEse?: string;
 }
-export async function getAllInstansi(): Promise<InstansiItem[]> {
-  return semantikFetch<InstansiItem[]>("/instansi");
-}
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-// Semua env tanpa NEXT_PUBLIC_ agar tidak bocor ke browser.
-// Gunakan di server-side (API Routes) saja.
 const SEMANTIK_CONFIG = {
   tokenEndpoint:
     "https://auth.tangerangkota.go.id/realms/semantik/protocol/openid-connect/token",
   apiBaseUrl: process.env.SEMANTIK_API_BASE_URL,
+  localBaseUrl: process.env.SEMANTIK_LOCAL_BASE_URL,
   clientId: process.env.SEMANTIK_CLIENT_ID,
   clientSecret: process.env.SEMANTIK_CLIENT_SECRET,
   username: process.env.SEMANTIK_USERNAME,
   password: process.env.SEMANTIK_PASSWORD,
+  legacyToken: process.env.SEMANTIK_LEGACY_TOKEN,
 };
 
-// ─── Token Cache (server-side only) ─────────────────────────────────────────
+console.log("LEGACY TOKEN:", SEMANTIK_CONFIG.legacyToken); // ← tambah ini
+
+// ─── Token Cache ──────────────────────────────────────────────────────────────
 let cachedToken: string | null = null;
 let tokenExpiry: number = 0;
 
-/**
- * Ambil OIDC token dari Keycloak Semantik.
- * Token di-cache sampai hampir expired (buffer 30 detik).
- */
 export async function getSemantikToken(): Promise<string> {
   if (cachedToken && Date.now() < tokenExpiry - 30_000) {
     return cachedToken;
@@ -202,20 +192,18 @@ export function clearSemantikToken(): void {
   tokenExpiry = 0;
 }
 
-// ─── Generic fetch helper ────────────────────────────────────────────────────
+// ─── Fetch ke LIVE (GET) ──────────────────────────────────────────────────────
 async function semantikFetch<T>(
   endpoint: string,
   options: RequestInit = {},
-  retry = true, // ← tambah param ini
+  retry = true,
 ): Promise<T> {
   const token = await getSemantikToken();
   const baseUrl = SEMANTIK_CONFIG.apiBaseUrl;
 
-  if (!baseUrl) {
-    throw new Error("SEMANTIK_API_BASE_URL belum dikonfigurasi di .env");
-  }
+  if (!baseUrl) throw new Error("SEMANTIK_API_BASE_URL belum dikonfigurasi di .env");
 
-  const url = `${baseUrl}${endpoint}`;
+  const url = `${baseUrl.replace(/\/$/, "")}${endpoint}`;
 
   const response = await fetch(url, {
     ...options,
@@ -227,10 +215,9 @@ async function semantikFetch<T>(
     },
   });
 
-  // ← tambah block ini
   if (response.status === 401 && retry) {
-    clearSemantikToken(); // buang cache token lama
-    return semantikFetch<T>(endpoint, options, false); // retry sekali
+    clearSemantikToken();
+    return semantikFetch<T>(endpoint, options, false);
   }
 
   if (!response.ok) {
@@ -241,12 +228,53 @@ async function semantikFetch<T>(
   return response.json();
 }
 
-// ─── Pegawai ─────────────────────────────────────────────────────────────────
+// ─── Fetch ke LOKAL (POST + detail lokal) ──────────────────────────────────── UHUHTT
+async function semantikLocalFetch<T>(
+  endpoint: string,
+  options: RequestInit = {},
+  retry = true,
+): Promise<T> {
+  const token = await getSemantikToken(); // ← OIDC token, sama seperti live
 
-/**
- * Cek data pegawai berdasarkan NIP.
- * POST /pegawai/ceknip
- */
+  const baseUrl = SEMANTIK_CONFIG.localBaseUrl ?? SEMANTIK_CONFIG.apiBaseUrl;
+
+  if (!baseUrl) throw new Error("SEMANTIK_LOCAL_BASE_URL belum dikonfigurasi di .env");
+
+  const url = `${baseUrl.replace(/\/$/, "")}${endpoint}`;
+
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+      ...options.headers,
+    },
+  });
+
+  if (response.status === 401 && retry) {
+    clearSemantikToken();
+    return semantikLocalFetch<T>(endpoint, options, false);
+  }
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Semantik Local API Error ${response.status}: ${err}`);
+  }
+
+  return response.json();
+}
+
+// ─── Instansi ─────────────────────────────────────────────────────────────────
+
+/** GET /instansi → LIVE */
+export async function getAllInstansi(): Promise<InstansiItem[]> {
+  return semantikFetch<InstansiItem[]>("/instansi");
+}
+
+// ─── Pegawai ──────────────────────────────────────────────────────────────────
+
+/** POST /pegawai/ceknip → LIVE */
 export async function checkPegawai(nip: string): Promise<PegawaiResponse> {
   return semantikFetch<PegawaiResponse>("/pegawai/ceknip", {
     method: "POST",
@@ -254,36 +282,35 @@ export async function checkPegawai(nip: string): Promise<PegawaiResponse> {
   });
 }
 
-// ─── Teleconference ──────────────────────────────────────────────────────────
+// ─── Teleconference ───────────────────────────────────────────────────────────
 
-/**
- * Kirim permohonan teleconference baru.
- * POST /teleconference/permohonan
- */
+/** POST /teleconference/permohonan → LOKAL */
 export async function submitPermohonan(
   payload: PermohonanRequest,
 ): Promise<PermohonanResponse> {
-  return semantikFetch<PermohonanResponse>("/teleconference/permohonan", {
+  return semantikLocalFetch<PermohonanResponse>("/teleconference/permohonan", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
-/**
- * Ambil detail permohonan berdasarkan ID (angka dari Semantik).
- * GET /teleconference/permohonan/{id}
- */
+/** GET /teleconference/permohonan/{id} → LIVE */
 export async function getPermohonanById(
   id: number | string,
 ): Promise<PermohonanDetail> {
   return semantikFetch<PermohonanDetail>(`/teleconference/permohonan/${id}`);
 }
 
-/**
- * Ambil semua permohonan (dengan pagination opsional).
- * GET /teleconference/permohonan
- */
-export async function getAllPermohonan(params?: {
+/** GET /teleconference/permohonan/{id} → LOKAL (dipakai setelah POST) */
+export async function getPermohonanByIdLocal(
+  id: number | string,
+): Promise<PermohonanDetail> {
+  return semantikLocalFetch<PermohonanDetail>(`/teleconference/permohonan/${id}`);
+}
+
+/** GET /teleconference/permohonan → LIVE */
+
+export async function getAllPermohonanLocal(params?: {
   limit?: number;
   offset?: number;
   search?: string;
@@ -294,14 +321,12 @@ export async function getAllPermohonan(params?: {
   if (params?.search) query.set("search", params.search);
 
   const qs = query.toString();
-  return semantikFetch<PermohonanDetail[]>(
+  return semantikLocalFetch<PermohonanDetail[]>(
     `/teleconference/permohonan${qs ? `?${qs}` : ""}`,
   );
 }
 
-/**
- * Ekstrak link Zoom pertama dari detail permohonan.
- */
+/** Ekstrak link Zoom pertama dari detail permohonan */
 export function extractZoomLink(
   detail: PermohonanDetail | null | undefined,
 ): string | null {
