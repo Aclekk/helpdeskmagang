@@ -1,0 +1,1 @@
+{"kind":"FETCH","data":{"headers":{"connection":"keep-alive","content-length":"2","content-type":"application/json; charset=utf-8","date":"Thu, 07 May 2026 06:17:51 GMT","etag":"W/\"2-l9Fw4VUO7kr8CvBlt4zaMCqXZ0w\"","keep-alive":"timeout=5","x-powered-by":"Express"},"body":"W10=","status":200,"url":"http://172.16.10.134:3001/instansi"},"revalidate":31536000,"tags":[]}
