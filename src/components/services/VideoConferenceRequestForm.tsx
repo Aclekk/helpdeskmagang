@@ -128,7 +128,7 @@ export default function VideoConferenceRequestForm() {
   const [keterangan, setKeterangan] = useState("");
 
   // ─── State Recurrence ───────────────────────────────────────────────────────
-  type RepeatType = "harian" | "mingguan" | "bulanan";
+  type RepeatType = "harian" | "mingguan" 
   type EndType = "date" | "count";
   const [pengulangan, setPengulangan] = useState<RepeatType>("mingguan");
   const [ulangSetiap, setUlangSetiap] = useState(1);
@@ -187,7 +187,6 @@ export default function VideoConferenceRequestForm() {
           setEmail(result.data.email || "");
           setJabatanPemohon(result.data.jabatan || "");
           setKodeUnor(result.data.kode_unor || "");
-          // Auto-set instansi dari data pegawai
           if (result.data.unit_kerja) {
             setInstansi(result.data.unit_kerja);
           }
@@ -237,6 +236,17 @@ export default function VideoConferenceRequestForm() {
   // ─── Submit ──────────────────────────────────────────────────────────────────
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validasi recurrence
+    if (acaraBerulang && jenisBerakhir === "date" && !tanggalBerakhir) {
+      toast({
+        title: "Tanggal berakhir wajib diisi",
+        description: "Silakan pilih tanggal berakhir acara berulang",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     const todayISO = toISODate(new Date());
@@ -260,17 +270,24 @@ export default function VideoConferenceRequestForm() {
           ? perangkatDibutuhkan.join(", ")
           : undefined,
       jenisKegiatan: jenisKegiatan || undefined,
-      keterangan: [
-        namaHost ? `Nama host: ${namaHost}` : null,
-        perangkatDibutuhkan.length > 0 ? `Perangkat: ${perangkatDibutuhkan.join(", ")}` : null,
-      ].filter(Boolean).join(" | ") || "-",
+      keterangan:
+        [
+          namaHost ? `Nama host: ${namaHost}` : null,
+          perangkatDibutuhkan.length > 0
+            ? `Perangkat: ${perangkatDibutuhkan.join(", ")}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" | ") || "-",
       acaraBerulang,
       ...(acaraBerulang && {
         pengulangan,
         ulangSetiap,
         hariMingguan: pengulangan === "mingguan" ? hariMingguan : undefined,
         jenisBerakhir,
-        tanggalBerakhir: jenisBerakhir === "date" ? tanggalBerakhir : undefined,
+       tanggalBerakhir: jenisBerakhir === "date" && tanggalBerakhir
+  ? tanggalBerakhir
+  : undefined,
         jumlahPenyelenggaraan:
           jenisBerakhir === "count" ? jumlahPenyelenggaraan : undefined,
       }),
@@ -466,7 +483,6 @@ export default function VideoConferenceRequestForm() {
                         <SelectContent>
                           <SelectItem value="harian">Harian</SelectItem>
                           <SelectItem value="mingguan">Mingguan</SelectItem>
-                          <SelectItem value="bulanan">Bulanan</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -501,7 +517,7 @@ export default function VideoConferenceRequestForm() {
                     </div>
                   </div>
 
-                  {/* Hari (mingguan) */}
+                  {/* Hari (mingguan) - FIXED: nilai pakai bahasa Indonesia */}
                   {pengulangan === "mingguan" && (
                     <div className="grid grid-cols-1 items-center gap-4 md:grid-cols-12">
                       <div className="font-medium text-slate-900 dark:text-slate-50 md:col-span-3">
@@ -509,13 +525,13 @@ export default function VideoConferenceRequestForm() {
                       </div>
                       <div className="flex flex-wrap gap-5 md:col-span-9">
                         {[
-                          ["sun", "Minggu"],
-                          ["mon", "Senin"],
-                          ["tue", "Selasa"],
-                          ["wed", "Rabu"],
-                          ["thu", "Kamis"],
-                          ["fri", "Jumat"],
-                          ["sat", "Sabtu"],
+                          ["minggu", "Minggu"],
+                          ["senin", "Senin"],
+                          ["selasa", "Selasa"],
+                          ["rabu", "Rabu"],
+                          ["kamis", "Kamis"],
+                          ["jumat", "Jumat"],
+                          ["sabtu", "Sabtu"],
                         ].map(([val, label]) => (
                           <label key={val} className="flex items-center gap-2">
                             <Checkbox
@@ -670,7 +686,6 @@ export default function VideoConferenceRequestForm() {
                   value={instansi}
                   onValueChange={(val) => {
                     setInstansi(val);
-                    // Auto-fill kodeUnor dari instansi yang dipilih
                     const selected = instansiList.find(
                       (i) => i.namaUnor === val,
                     );
@@ -830,7 +845,6 @@ export default function VideoConferenceRequestForm() {
               />
             </div>
 
-            
             <div className="flex justify-end pt-2">
               <Button
                 type="submit"
