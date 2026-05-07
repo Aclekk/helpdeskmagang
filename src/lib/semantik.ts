@@ -62,7 +62,7 @@ export interface PermohonanRequest {
   jenisKegiatan?: string;
   keterangan?: string;
   acaraBerulang: boolean;
-  pengulangan?: "harian" | "mingguan" | "bulanan";
+  pengulangan?: "harian" | "mingguan" 
   ulangSetiap?: number;
   hariMingguan?: string[];
   jenisBerakhir?: "date" | "count";
@@ -149,7 +149,7 @@ const SEMANTIK_CONFIG = {
   legacyToken: process.env.SEMANTIK_LEGACY_TOKEN,
 };
 
-console.log("LEGACY TOKEN:", SEMANTIK_CONFIG.legacyToken); // ← tambah ini
+
 
 // ─── Token Cache ──────────────────────────────────────────────────────────────
 let cachedToken: string | null = null;
