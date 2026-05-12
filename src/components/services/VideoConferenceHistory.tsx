@@ -100,6 +100,16 @@ interface SemantikPermohonan {
   jadwal?: { linkZoom?: string }[];
 }
 
+// ─── PERUBAHAN 1: Tambah helper parseNamaHost ─────────────────────────────────
+
+function parseNamaHost(keterangan?: string): string {
+  if (!keterangan) return "";
+  const match = keterangan.match(/Nama host:\s*([^|]+)/);
+  return match ? match[1].trim() : "";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function mapSemantikToPermohonan(item: SemantikPermohonan): LocalPermohonan {
   return {
     semantikId: item.id,
@@ -120,7 +130,7 @@ function mapSemantikToPermohonan(item: SemantikPermohonan): LocalPermohonan {
     nomorTelepon: item.nomorTelepon || "",
     lokasiAcara: item.lokasiAcara || "",
     perangkatDibutuhkan: item.perangkatDibutuhkan || "",
-    namaHost: "",
+    namaHost: parseNamaHost(item.keterangan), // ← PERUBAHAN 2: parse dari keterangan
     acaraBerulang: item.isRecurring,
     pengulangan: item.recurrenceFreq as
       | "harian"
@@ -379,7 +389,6 @@ export default function VideoConferenceHistory() {
   const [syncingIds, setSyncingIds] = useState<Set<number>>(new Set());
 
   // Fetch data dari Semantik API saat mount
-  // Fetch data dari Semantik API saat mount
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -402,7 +411,7 @@ export default function VideoConferenceHistory() {
         // Map response dari Semantik ke LocalPermohonan
         const mapped = list.map(mapSemantikToPermohonan);
 
-        // TAMBAH INI: fetch detail untuk yang disetujui
+        // Fetch detail untuk yang disetujui
         const enriched = await Promise.all(
           mapped.map(async (item) => {
             if (item.status === "disetujui" && item.semantikId) {

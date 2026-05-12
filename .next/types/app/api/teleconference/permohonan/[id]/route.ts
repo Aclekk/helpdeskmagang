@@ -1,4 +1,4 @@
-// File: C:\Users\ziyad\Downloads\WEBSITETIL\helpdeskmagang\src\app\api\teleconference\permohonan\[id]\route.ts
+// File: C:\TugasNgoding\helpdeskmagang\src\app\api\teleconference\permohonan\[id]\route.ts
 import * as entry from '../../../../../../../src/app/api/teleconference/permohonan/[id]/route.js'
 import type { NextRequest } from 'next/server.js'
 
