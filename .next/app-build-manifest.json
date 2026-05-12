@@ -36,11 +36,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/services/[id]/page.js"
     ],
-    "/login/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/login/page.js"
-    ],
     "/request/[id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -51,10 +46,30 @@
       "static/chunks/main-app.js",
       "static/chunks/app/request/video-conference/history/page.js"
     ],
+    "/services/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/services/page.js"
+    ],
+    "/request/repository-git/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/request/repository-git/page.js"
+    ],
     "/_not-found/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/_not-found/page.js"
+    ],
+    "/request/vpn/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/request/vpn/page.js"
+    ],
+    "/request/vpn/history/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/request/vpn/history/page.js"
     ]
   }
 }

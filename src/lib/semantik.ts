@@ -228,19 +228,24 @@ async function semantikFetch<T>(
   return response.json();
 }
 
-// ─── Fetch ke LOKAL (POST + detail lokal) ──────────────────────────────────── UHUHTT
 async function semantikLocalFetch<T>(
   endpoint: string,
   options: RequestInit = {},
   retry = true,
 ): Promise<T> {
-  const token = await getSemantikToken(); // ← OIDC token, sama seperti live
+  const token = await getSemantikToken();
 
   const baseUrl = SEMANTIK_CONFIG.localBaseUrl ?? SEMANTIK_CONFIG.apiBaseUrl;
 
   if (!baseUrl) throw new Error("SEMANTIK_LOCAL_BASE_URL belum dikonfigurasi di .env");
 
   const url = `${baseUrl.replace(/\/$/, "")}${endpoint}`;
+
+  // ✅ LOG 1 — lihat apa yang dikirim ke Semantik
+  console.log("=== [SEMANTIK] REQUEST ===");
+  console.log("URL:", url);
+  console.log("METHOD:", options.method ?? "GET");
+  console.log("BODY:", options.body ?? "(no body)");
 
   const response = await fetch(url, {
     ...options,
@@ -252,19 +257,23 @@ async function semantikLocalFetch<T>(
     },
   });
 
+  // ✅ LOG 2 — lihat response mentah dari Semantik
+  const responseText = await response.text();
+  console.log("=== [SEMANTIK] RESPONSE ===");
+  console.log("STATUS:", response.status);
+  console.log("BODY:", responseText);
+
   if (response.status === 401 && retry) {
     clearSemantikToken();
     return semantikLocalFetch<T>(endpoint, options, false);
   }
 
   if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Semantik Local API Error ${response.status}: ${err}`);
+    throw new Error(`Semantik Local API Error ${response.status}: ${responseText}`);
   }
 
-  return response.json();
+  return JSON.parse(responseText);
 }
-
 // ─── Instansi ─────────────────────────────────────────────────────────────────
 
 /** GET /instansi → LIVE */

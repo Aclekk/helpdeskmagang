@@ -1,9 +1,11 @@
 {
-  "/page": "app/page.js",
-  "/login/page": "app/login/page.js",
-  "/request/video-conference/history/page": "app/request/video-conference/history/page.js",
-  "/api/teleconference/permohonan/route": "app/api/teleconference/permohonan/route.js",
+  "/services/[id]/page": "app/services/[id]/page.js",
   "/request/[id]/page": "app/request/[id]/page.js",
-  "/api/teleconference/permohonan/[id]/route": "app/api/teleconference/permohonan/[id]/route.js",
-  "/services/[id]/page": "app/services/[id]/page.js"
+  "/page": "app/page.js",
+  "/request/repository-git/page": "app/request/repository-git/page.js",
+  "/services/page": "app/services/page.js",
+  "/api/pegawai/ceknip/route": "app/api/pegawai/ceknip/route.js",
+  "/api/instansi/route": "app/api/instansi/route.js",
+  "/request/vpn/page": "app/request/vpn/page.js",
+  "/request/vpn/history/page": "app/request/vpn/history/page.js"
 }

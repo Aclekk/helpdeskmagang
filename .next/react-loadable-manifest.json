@@ -4,5 +4,11 @@
     "files": [
       "static/chunks/_app-pages-browser_src_components_services_VideoConferenceHistory_tsx.js"
     ]
+  },
+  "app\\request\\vpn\\history\\page.tsx -> src/components/services/VpnHistory": {
+    "id": "app\\request\\vpn\\history\\page.tsx -> src/components/services/VpnHistory",
+    "files": [
+      "static/chunks/_app-pages-browser_src_components_services_VpnHistory_tsx.js"
+    ]
   }
 }
