@@ -62,7 +62,7 @@ export interface PermohonanRequest {
   jenisKegiatan?: string;
   keterangan?: string;
   acaraBerulang: boolean;
-  pengulangan?: "harian" | "mingguan" 
+  pengulangan?: "harian" | "mingguan";
   ulangSetiap?: number;
   hariMingguan?: string[];
   jenisBerakhir?: "date" | "count";
@@ -149,8 +149,6 @@ const SEMANTIK_CONFIG = {
   legacyToken: process.env.SEMANTIK_LEGACY_TOKEN,
 };
 
-
-
 // ─── Token Cache ──────────────────────────────────────────────────────────────
 let cachedToken: string | null = null;
 let tokenExpiry: number = 0;
@@ -201,7 +199,8 @@ async function semantikFetch<T>(
   const token = await getSemantikToken();
   const baseUrl = SEMANTIK_CONFIG.apiBaseUrl;
 
-  if (!baseUrl) throw new Error("SEMANTIK_API_BASE_URL belum dikonfigurasi di .env");
+  if (!baseUrl)
+    throw new Error("SEMANTIK_API_BASE_URL belum dikonfigurasi di .env");
 
   const url = `${baseUrl.replace(/\/$/, "")}${endpoint}`;
 
@@ -237,7 +236,8 @@ async function semantikLocalFetch<T>(
 
   const baseUrl = SEMANTIK_CONFIG.localBaseUrl ?? SEMANTIK_CONFIG.apiBaseUrl;
 
-  if (!baseUrl) throw new Error("SEMANTIK_LOCAL_BASE_URL belum dikonfigurasi di .env");
+  if (!baseUrl)
+    throw new Error("SEMANTIK_LOCAL_BASE_URL belum dikonfigurasi di .env");
 
   const url = `${baseUrl.replace(/\/$/, "")}${endpoint}`;
 
@@ -269,7 +269,9 @@ async function semantikLocalFetch<T>(
   }
 
   if (!response.ok) {
-    throw new Error(`Semantik Local API Error ${response.status}: ${responseText}`);
+    throw new Error(
+      `Semantik Local API Error ${response.status}: ${responseText}`,
+    );
   }
 
   return JSON.parse(responseText);
@@ -314,7 +316,9 @@ export async function getPermohonanById(
 export async function getPermohonanByIdLocal(
   id: number | string,
 ): Promise<PermohonanDetail> {
-  return semantikLocalFetch<PermohonanDetail>(`/teleconference/permohonan/${id}`);
+  return semantikLocalFetch<PermohonanDetail>(
+    `/teleconference/permohonan/${id}`,
+  );
 }
 
 /** GET /teleconference/permohonan → LIVE */
@@ -340,4 +344,79 @@ export function extractZoomLink(
   detail: PermohonanDetail | null | undefined,
 ): string | null {
   return detail?.jadwal?.[0]?.linkZoom ?? null;
+}
+// ─── Repository ───────────────────────────────────────────────────────────────
+
+export interface RepositoryPersonil {
+  namaPersonil: string;
+  usernameGitlab: string;
+  jabatanPeran: string;
+  keterangan: string;
+}
+
+export interface RepositoryPermohonanRequest {
+  namaAplikasi: string;
+  jenisAplikasi: string;
+  unitKerjaPengelola: string;
+  namaPic: string;
+  nomorKontakPic: string;
+  subdomain: string;
+  bahasaPemrograman: string;
+  framework: string;
+  database: string;
+  webServer: string;
+  modulLainnya: string;
+  tanggalPermohonan: string;
+  tanggalRencanaPublikasi: string;
+  namaProyek: string;
+  tujuanPembuatan: string;
+  namaRepository: string;
+  tanggalBerakhir: string;
+  jenisDomain: string;
+  usulanNamaDomain: string;
+  jenisAkses: string;
+  persons: RepositoryPersonil[];
+}
+
+export interface RepositoryPermohonanResponse {
+  id?: number;
+  noTiket?: string;
+  status?: string;
+  message?: string;
+  data?: {
+    id?: number;
+    noTiket?: string;
+    status?: string;
+  };
+}
+
+/** POST /repository/permohonan → LOKAL */
+export async function submitRepositoryPermohonan(
+  payload: RepositoryPermohonanRequest,
+): Promise<RepositoryPermohonanResponse> {
+  return semantikLocalFetch<RepositoryPermohonanResponse>(
+    "/repository/permohonan",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+/** GET /repository/permohonan → LOKAL */
+export async function getAllRepositoryPermohonan(): Promise<
+  RepositoryPermohonanResponse[]
+> {
+  return semantikLocalFetch<RepositoryPermohonanResponse[]>(
+    "/repository/permohonan",
+  );
+}
+
+/** GET /repository/permohonan/{id} → LOKAL */
+export async function getRepositoryPermohonanById(
+  id: number | string,
+): Promise<RepositoryPermohonanResponse> {
+  return semantikLocalFetch<RepositoryPermohonanResponse>(
+    `/repository/permohonan/${id}`,
+  );
 }

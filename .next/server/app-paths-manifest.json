@@ -1,11 +1,6 @@
 {
-  "/services/[id]/page": "app/services/[id]/page.js",
-  "/request/[id]/page": "app/request/[id]/page.js",
   "/page": "app/page.js",
   "/request/repository-git/page": "app/request/repository-git/page.js",
-  "/services/page": "app/services/page.js",
-  "/api/pegawai/ceknip/route": "app/api/pegawai/ceknip/route.js",
   "/api/instansi/route": "app/api/instansi/route.js",
-  "/request/vpn/page": "app/request/vpn/page.js",
-  "/request/vpn/history/page": "app/request/vpn/history/page.js"
+  "/api/repository/permohonan/route": "app/api/repository/permohonan/route.js"
 }
