@@ -19,7 +19,10 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (nip: string, password: string) => Promise<{ ok: boolean; message?: string }>;
+  login: (
+    nip: string,
+    password: string,
+  ) => Promise<{ ok: boolean; message?: string }>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -34,8 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Check localStorage saat pertama load
   useEffect(() => {
-    // Hanya akses localStorage di client-side
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const storedUser = localStorage.getItem("helpdesk_user");
       if (storedUser) {
         try {
@@ -49,16 +51,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<{ ok: boolean; message?: string }> => {
+  const login = async (
+    nip: string,
+    password: string,
+  ): Promise<{ ok: boolean; message?: string }> => {
     setIsLoading(true);
 
     try {
       const res = await fetch("/api/auth/opendata-login", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify({ uid: email, pid: password }),
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ uid: nip, pid: password }),
       });
       const data = await res.json().catch(() => ({}));
+
+      // ✅ DEBUG — liat semua field dari response API
+      console.log(
+        "=== LOGIN RESPONSE (full) ===",
+        JSON.stringify(data, null, 2),
+      );
 
       if (!res.ok || data?.status === false) {
         setIsLoading(false);
@@ -68,17 +82,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Extract user data from API response
       const apiData = data?.data || data;
 
-      // Create user object with name from API (field: nama_pegawai)
+      // ✅ DEBUG — liat field spesifik yang ada
+      console.log("=== API DATA FIELDS ===", {
+        email: apiData?.email,
+        email_pegawai: apiData?.email_pegawai,
+        mail: apiData?.mail,
+        nama_pegawai: apiData?.nama_pegawai,
+        nip: apiData?.nip,
+        whatsapp: apiData?.whatsapp,
+        no_hp: apiData?.no_hp,
+      });
+
+      // Ambil email dari API, fallback ke format nip@tangerangkota.go.id
+      const emailFromApi =
+        apiData?.email ||
+        apiData?.email_pegawai ||
+        apiData?.mail ||
+        apiData?.email_resmi ||
+        null;
+
+      const resolvedEmail =
+        emailFromApi ?? `${apiData?.nip || nip}@tangerangkota.go.id`;
+
       const userData: User = {
-        email: email,
-        name: apiData?.nama_pegawai || apiData?.nama_lengkap || apiData?.nama || apiData?.name || email,
-        nip: apiData?.nip || email,
-        avatar: apiData?.foto || apiData?.url_foto || apiData?.avatar || undefined,
-        whatsapp: apiData?.whatsapp || apiData?.no_wa || apiData?.no_hp || apiData?.nomor_hp || apiData?.telp || undefined,
+        email: resolvedEmail,
+        name:
+          apiData?.nama_pegawai ||
+          apiData?.nama_lengkap ||
+          apiData?.nama ||
+          apiData?.name ||
+          nip,
+        nip: apiData?.nip || nip,
+        avatar:
+          apiData?.foto || apiData?.url_foto || apiData?.avatar || undefined,
+        whatsapp:
+          apiData?.whatsapp ||
+          apiData?.no_wa ||
+          apiData?.no_hp ||
+          apiData?.nomor_hp ||
+          apiData?.telp ||
+          undefined,
       };
 
-      // Save to localStorage (hanya di client-side)
-      if (typeof window !== 'undefined') {
+      // ✅ DEBUG — liat user object yang akan disimpan
+      console.log("=== USER OBJECT ===", userData);
+
+      if (typeof window !== "undefined") {
         localStorage.setItem("helpdesk_user", JSON.stringify(userData));
         if (data?.token) {
           localStorage.setItem("helpdesk_token", String(data.token));
@@ -94,10 +143,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Logout function
   const logout = () => {
-    // Hanya akses localStorage di client-side
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       localStorage.removeItem("helpdesk_user");
     }
     setUser(null);

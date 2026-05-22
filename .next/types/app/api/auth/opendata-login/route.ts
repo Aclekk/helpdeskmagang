@@ -1,4 +1,4 @@
-// File: C:\CodeKuliah\helpdeskmagang\src\app\api\auth\opendata-login\route.ts
+// File: C:\Users\ziyad\Downloads\WEBSITETIL\helpdeskmagang\src\app\api\auth\opendata-login\route.ts
 import * as entry from '../../../../../../src/app/api/auth/opendata-login/route.js'
 import type { NextRequest } from 'next/server.js'
 

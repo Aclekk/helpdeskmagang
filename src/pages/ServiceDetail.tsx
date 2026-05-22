@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -23,6 +23,7 @@ import {
   Users,
   Calendar,
   Lock,
+  MessageCircle,
 } from "lucide-react";
 import { getServiceById, categories } from "@/data/services";
 import { useAuth } from "@/contexts/AuthContext";
@@ -60,6 +61,9 @@ const iconMap: Record<string, LucideIcon> = {
   HelpCircle,
 };
 
+// ─── Nomor WA Helpdesk TIK ────────────────────────────────────────────────────
+const HELPDESK_WA_NUMBER = "6281115001​52";
+
 const ServiceDetail = () => {
   const params = useParams();
   const router = useRouter();
@@ -67,7 +71,7 @@ const ServiceDetail = () => {
   const service = params?.id ? getServiceById(params.id as string) : undefined;
 
   if (!service) {
-    router.push('/services');
+    router.push("/services");
     return null;
   }
 
@@ -79,13 +83,22 @@ const ServiceDetail = () => {
   // Semua layanan butuh login
   const isPublicService = false;
   const isTteService = service.id === "tanda-tangan-elektronik";
+  const isEmailResmiService = service.id === "email-resmi";
 
   const displayFields =
     service.id === "video-conference"
       ? [
-          { name: "tanggalPermohonan", label: "Tanggal Permohonan", required: false },
+          {
+            name: "tanggalPermohonan",
+            label: "Tanggal Permohonan",
+            required: false,
+          },
           { name: "judulKegiatan", label: "Judul Kegiatan", required: true },
-          { name: "tanggalPelaksanaan", label: "Tanggal Pelaksanaan", required: true },
+          {
+            name: "tanggalPelaksanaan",
+            label: "Tanggal Pelaksanaan",
+            required: true,
+          },
           { name: "jumlahPeserta", label: "Jumlah Peserta", required: false },
           { name: "waktuMulai", label: "Waktu Mulai", required: true },
           { name: "waktuSelesai", label: "Waktu Selesai", required: false },
@@ -96,53 +109,101 @@ const ServiceDetail = () => {
           { name: "email", label: "Email", required: true },
           { name: "whatsapp", label: "No. Whatsapp", required: false },
           { name: "lokasiAcara", label: "Lokasi Acara", required: false },
-          { name: "perangkatDibutuhkan", label: "Perangkat yang dibutuhkan", required: false },
+          {
+            name: "perangkatDibutuhkan",
+            label: "Perangkat yang dibutuhkan",
+            required: false,
+          },
           { name: "namaHost", label: "Nama Host", required: false },
         ]
       : service.id === "subdomain"
-      ? [
-          { name: "namaAplikasi", label: "Nama Aplikasi", required: true },
-          { name: "jenisAplikasi", label: "Jenis Aplikasi", required: true },
-          { name: "unitOrganisasi", label: "Unit Organisasi", required: true },
-          { name: "emailPemohon", label: "Email Pemohon", required: false },
-          { name: "namaSubdomain", label: "Nama Subdomain", required: true },
-          { name: "bahasaPemrograman", label: "Bahasa Pemrograman", required: true },
-          { name: "framework", label: "Framework", required: true },
-          { name: "webserver", label: "Webserver", required: true },
-          { name: "tanggalRencana", label: "Tanggal Rencana", required: true },
-          { name: "keteranganTambahan", label: "Keterangan Tambahan", required: false },
-        ]
-      : service.id === "vpn"
-      ? [
-          { name: "jenisPermohonan", label: "Jenis Permohonan", required: true },
-          { name: "nama", label: "Nama", required: true },
-          { name: "jabatan", label: "Jabatan", required: true },
-          { name: "statusPegawai", label: "Status Pegawai", required: true },
-          { name: "nip", label: "NIP", required: true },
-          { name: "email", label: "Email", required: true },
-          { name: "nomorTelp", label: "Nomor Telp yang terhubung ke Whatsapp", required: true },
-          { name: "instansi", label: "Instansi", required: true },
-          { name: "tujuan", label: "Tujuan", required: true },
-          { name: "tandaTangan", label: "Tanda Tangan", required: true },
-        ]
-      : service.formSchema.map((f) => ({
-          name: f.name,
-          label: f.label,
-          required: f.required,
-        }));
+        ? [
+            { name: "namaAplikasi", label: "Nama Aplikasi", required: true },
+            { name: "jenisAplikasi", label: "Jenis Aplikasi", required: true },
+            {
+              name: "unitOrganisasi",
+              label: "Unit Organisasi",
+              required: true,
+            },
+            { name: "emailPemohon", label: "Email Pemohon", required: false },
+            { name: "namaSubdomain", label: "Nama Subdomain", required: true },
+            {
+              name: "bahasaPemrograman",
+              label: "Bahasa Pemrograman",
+              required: true,
+            },
+            { name: "framework", label: "Framework", required: true },
+            { name: "webserver", label: "Webserver", required: true },
+            {
+              name: "tanggalRencana",
+              label: "Tanggal Rencana",
+              required: true,
+            },
+            {
+              name: "keteranganTambahan",
+              label: "Keterangan Tambahan",
+              required: false,
+            },
+          ]
+        : service.id === "vpn"
+          ? [
+              {
+                name: "jenisPermohonan",
+                label: "Jenis Permohonan",
+                required: true,
+              },
+              { name: "nama", label: "Nama", required: true },
+              { name: "jabatan", label: "Jabatan", required: true },
+              {
+                name: "statusPegawai",
+                label: "Status Pegawai",
+                required: true,
+              },
+              { name: "nip", label: "NIP", required: true },
+              { name: "email", label: "Email", required: true },
+              {
+                name: "nomorTelp",
+                label: "Nomor Telp yang terhubung ke Whatsapp",
+                required: true,
+              },
+              { name: "instansi", label: "Instansi", required: true },
+              { name: "tujuan", label: "Tujuan", required: true },
+              { name: "tandaTangan", label: "Tanda Tangan", required: true },
+            ]
+          : service.formSchema.map((f) => ({
+              name: f.name,
+              label: f.label,
+              required: f.required,
+            }));
 
   const handleResetPassphrase = () => {
     const targetEmail = user?.email ?? "";
     console.log({ action: "reset_passphrase", email: targetEmail });
-    alert(`Link reset passphrase akan dikirim ke email ${targetEmail || "Anda"}`);
+    alert(
+      `Link reset passphrase akan dikirim ke email ${targetEmail || "Anda"}`,
+    );
+  };
+
+  // Email resmi user — langsung dari field email API
+  const emailResmiUser = user?.email ?? "-";
+
+  // Handler reset password email resmi via WhatsApp
+  const handleResetPasswordEmailResmi = () => {
+    const message = encodeURIComponent(
+      `Halo, saya ${user?.name ?? ""} (${user?.nip ?? ""}) ingin melakukan reset password email resmi saya (${emailResmiUser}). Mohon bantuannya. Terima kasih.`,
+    );
+    window.open(
+      `https://wa.me/${HELPDESK_WA_NUMBER}?text=${message}`,
+      "_blank",
+    );
   };
 
   // Handler untuk tombol "Ajukan Sekarang"
   const handleRequestService = () => {
     if (!isAuthenticated) {
       // User belum login, redirect ke login dengan save path
-      localStorage.setItem('redirectPath', `/services/${service.id}`);
-      router.push('/login');
+      localStorage.setItem("redirectPath", `/services/${service.id}`);
+      router.push("/login");
       return;
     }
 
@@ -205,6 +266,7 @@ const ServiceDetail = () => {
 
             <CardContent className="space-y-6 pt-6">
               {isTteService ? (
+                // ─── TTE Service ──────────────────────────────────────────
                 <div className="grid gap-6 lg:grid-cols-2">
                   <Card className="overflow-hidden border-slate-200/60 bg-white/80 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/50">
                     <div className="h-1.5 w-full bg-blue-600" />
@@ -218,7 +280,8 @@ const ServiceDetail = () => {
                         Status Sertifikat Anda ISSUE berlaku sampai 19 Juni 2026
                       </p>
                       <p className="text-sm text-slate-600 dark:text-slate-400">
-                        dengan email resmi yang terdaftar di BSrE {user?.email ?? "-"}
+                        dengan email resmi yang terdaftar di BSrE{" "}
+                        {user?.email ?? "-"}
                       </p>
                       <div className="text-sm text-slate-600 dark:text-slate-400">
                         Untuk merubah Passphrase anda dapat klik link berikut
@@ -226,13 +289,16 @@ const ServiceDetail = () => {
 
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button 
+                          <Button
                             className="w-fit bg-emerald-600 hover:bg-emerald-700"
                             onClick={(e) => {
                               if (!isAuthenticated) {
                                 e.preventDefault();
-                                localStorage.setItem('redirectPath', '/services/tanda-tangan-elektronik');
-                                router.push('/login');
+                                localStorage.setItem(
+                                  "redirectPath",
+                                  "/services/tanda-tangan-elektronik",
+                                );
+                                router.push("/login");
                               }
                             }}
                           >
@@ -248,7 +314,8 @@ const ServiceDetail = () => {
                               Anda yakin ingin merubah Passphrase anda?
                             </AlertDialogTitle>
                             <AlertDialogDescription className="text-center">
-                              Link untuk mereset Passphrase akan dikirim ke email
+                              Link untuk mereset Passphrase akan dikirim ke
+                              email
                               <div className="mt-1 font-semibold text-slate-900 dark:text-slate-50">
                                 {user?.email ?? "-"}
                               </div>
@@ -276,7 +343,10 @@ const ServiceDetail = () => {
                     </CardHeader>
                     <CardContent className="p-0">
                       <Accordion type="single" collapsible className="w-full">
-                        <AccordionItem value="tte-status" className="border-b-0">
+                        <AccordionItem
+                          value="tte-status"
+                          className="border-b-0"
+                        >
                           <AccordionTrigger className="bg-blue-100/70 px-4 py-3 text-left text-sm font-medium text-slate-900 hover:no-underline dark:bg-blue-950/40 dark:text-slate-50">
                             Status Tanda Tangan Elektronik
                           </AccordionTrigger>
@@ -284,7 +354,10 @@ const ServiceDetail = () => {
                             lorem ipsum
                           </AccordionContent>
                         </AccordionItem>
-                        <AccordionItem value="passphrase-apa" className="border-b-0">
+                        <AccordionItem
+                          value="passphrase-apa"
+                          className="border-b-0"
+                        >
                           <AccordionTrigger className="bg-blue-100/70 px-4 py-3 text-left text-sm font-medium text-slate-900 hover:no-underline dark:bg-blue-950/40 dark:text-slate-50">
                             Apa itu Passphrase
                           </AccordionTrigger>
@@ -292,7 +365,10 @@ const ServiceDetail = () => {
                             lorem ipsum
                           </AccordionContent>
                         </AccordionItem>
-                        <AccordionItem value="tte-dipakai" className="border-b-0">
+                        <AccordionItem
+                          value="tte-dipakai"
+                          className="border-b-0"
+                        >
                           <AccordionTrigger className="bg-blue-100/70 px-4 py-3 text-left text-sm font-medium text-slate-900 hover:no-underline dark:bg-blue-950/40 dark:text-slate-50">
                             Dimana Tanda Tangan Elektronik digunakan
                           </AccordionTrigger>
@@ -300,7 +376,10 @@ const ServiceDetail = () => {
                             lorem ipsum
                           </AccordionContent>
                         </AccordionItem>
-                        <AccordionItem value="lupa-passphrase" className="border-b-0">
+                        <AccordionItem
+                          value="lupa-passphrase"
+                          className="border-b-0"
+                        >
                           <AccordionTrigger className="bg-blue-100/70 px-4 py-3 text-left text-sm font-medium text-slate-900 hover:no-underline dark:bg-blue-950/40 dark:text-slate-50">
                             Bagaimana jika lupa passphrase
                           </AccordionTrigger>
@@ -312,7 +391,126 @@ const ServiceDetail = () => {
                     </CardContent>
                   </Card>
                 </div>
+              ) : isEmailResmiService ? (
+                // ─── Email Resmi Service ──────────────────────────────────
+                <div className="grid gap-6 lg:grid-cols-2">
+                  {/* Card Email Aktif User */}
+                  <Card className="overflow-hidden border-slate-200/60 bg-white/80 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/50">
+                    <div className="h-1.5 w-full bg-blue-600" />
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:text-base">
+                        Email Resmi Anda
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        Email resmi @tangerangkota.go.id yang terdaftar atas
+                        nama Anda:
+                      </p>
+
+                      {/* Email Display */}
+                      <div className="flex items-center gap-3 rounded-lg border border-blue-200/60 bg-blue-50/80 px-4 py-3 dark:border-blue-800/40 dark:bg-blue-950/30">
+                        <Mail className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                        <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                          {isAuthenticated
+                            ? emailResmiUser
+                            : "Login untuk melihat email Anda"}
+                        </span>
+                      </div>
+
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        Jika Anda lupa atau ingin reset password email resmi,
+                        tim TIK Diskominfo akan membantu melalui WhatsApp.
+                      </p>
+
+                      {/* Button Reset Password */}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            className="w-fit bg-emerald-600 hover:bg-emerald-700"
+                            onClick={(e) => {
+                              if (!isAuthenticated) {
+                                e.preventDefault();
+                                localStorage.setItem(
+                                  "redirectPath",
+                                  "/services/email-resmi",
+                                );
+                                router.push("/login");
+                              }
+                            }}
+                          >
+                            <MessageCircle className="mr-2 h-4 w-4" />
+                            Reset Password Email
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="sm:max-w-md">
+                          <AlertDialogHeader>
+                            <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full border-2 border-orange-300">
+                              <AlertTriangle className="h-7 w-7 text-orange-500" />
+                            </div>
+                            <AlertDialogTitle className="text-center">
+                              Reset Password Email Resmi?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription className="text-center">
+                              Anda akan diarahkan ke WhatsApp untuk menghubungi
+                              tim TIK Diskominfo. Permintaan reset password
+                              untuk email:
+                              <div className="mt-2 rounded-md bg-slate-100 px-3 py-2 font-semibold text-slate-900 dark:bg-slate-800 dark:text-slate-50">
+                                {emailResmiUser}
+                              </div>
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter className="sm:justify-center">
+                            <AlertDialogAction
+                              className="bg-emerald-600 hover:bg-emerald-700"
+                              onClick={handleResetPasswordEmailResmi}
+                            >
+                              <MessageCircle className="mr-2 h-4 w-4" />
+                              Ya, Hubungi via WhatsApp
+                            </AlertDialogAction>
+                            <AlertDialogCancel className="bg-red-600 text-white hover:bg-red-700 hover:text-white">
+                              Batal
+                            </AlertDialogCancel>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </CardContent>
+                  </Card>
+
+                  {/* Card Keterangan singkat */}
+                  <Card className="overflow-hidden border-slate-200/60 bg-white/80 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/50">
+                    <div className="h-1.5 w-full bg-blue-600" />
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:text-base">
+                        Tentang Layanan Ini
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-start gap-3">
+                        <Mail className="mt-0.5 h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" />
+                        <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                          Halaman ini menampilkan email resmi{" "}
+                          <span className="font-medium text-slate-900 dark:text-slate-50">
+                            @tangerangkota.go.id
+                          </span>{" "}
+                          yang terdaftar atas nama Anda sebagai pegawai.
+                        </p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <MessageCircle className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                          Jika lupa password, gunakan tombol{" "}
+                          <span className="font-medium text-slate-900 dark:text-slate-50">
+                            Reset Password Email
+                          </span>{" "}
+                          untuk menghubungi tim TIK via WhatsApp.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               ) : (
+                // ─── Layanan Lainnya (default) ────────────────────────────
                 <>
                   {/* Informasi Layanan */}
                   <div>
@@ -328,8 +526,8 @@ const ServiceDetail = () => {
                           </p>
                           <p className="leading-relaxed text-slate-600 dark:text-slate-400">
                             Lengkapi seluruh formulir pengajuan dengan data yang
-                            valid dan akurat. Pastikan informasi yang diisi sesuai
-                            dengan kebutuhan layanan.
+                            valid dan akurat. Pastikan informasi yang diisi
+                            sesuai dengan kebutuhan layanan.
                           </p>
                         </div>
                       </div>
@@ -342,8 +540,9 @@ const ServiceDetail = () => {
                           </p>
                           <p className="leading-relaxed text-slate-600 dark:text-slate-400">
                             Setelah pengajuan diterima, tim TIK akan melakukan
-                            verifikasi dan proses lebih lanjut. Anda akan mendapat
-                            notifikasi melalui email mengenai status pengajuan.
+                            verifikasi dan proses lebih lanjut. Anda akan
+                            mendapat notifikasi melalui email mengenai status
+                            pengajuan.
                           </p>
                         </div>
                       </div>
@@ -352,7 +551,8 @@ const ServiceDetail = () => {
                 </>
               )}
 
-              {!isTteService && (
+              {/* Field yang Diperlukan — hanya untuk layanan selain TTE dan Email Resmi */}
+              {!isTteService && !isEmailResmiService && (
                 <div>
                   <h3 className="mb-4 text-lg font-bold text-slate-900 dark:text-slate-50 sm:text-xl">
                     Field yang Diperlukan
@@ -384,8 +584,8 @@ const ServiceDetail = () => {
         {/* 📌 Sidebar - Right Side (1/3 width) */}
         <div className="lg:col-span-1">
           <div className="sticky top-24 space-y-6">
-            {/* CTA Card */}
-            {!isTteService && (
+            {/* CTA Card — disembunyiin untuk TTE dan Email Resmi */}
+            {!isTteService && !isEmailResmiService && (
               <Card className="border-slate-200/60 bg-gradient-to-br from-blue-50 to-cyan-50 shadow-lg dark:border-slate-800/60 dark:from-blue-950/30 dark:to-cyan-950/20">
                 <CardContent className="space-y-4 pt-6">
                   <div className="text-center">
@@ -444,11 +644,11 @@ const ServiceDetail = () => {
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                     <span className="font-medium">Email:</span>
-                    <span>XXXXXX@tangerangkota.go.id</span>
+                    <span>diskominfo@tangerangkota.go.id</span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                     <span className="font-medium">Telp:</span>
-                    <span>(08X) XXXXX</span>
+                    <span>0811-1500-152</span>
                   </div>
                 </div>
               </CardContent>
