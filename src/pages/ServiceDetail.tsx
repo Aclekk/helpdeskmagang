@@ -76,8 +76,8 @@ const ServiceDetail = () => {
   const [showSubjectModal, setShowSubjectModal] = useState(false);
 
   // ✅ Check apakah layanan butuh login atau tidak
-  // VPN adalah satu-satunya layanan yang PUBLIC (ga perlu login)
-  const isPublicService = service.id === "vpn";
+  // Semua layanan butuh login
+  const isPublicService = false;
   const isTteService = service.id === "tanda-tangan-elektronik";
 
   const displayFields =
@@ -139,18 +139,19 @@ const ServiceDetail = () => {
 
   // Handler untuk tombol "Ajukan Sekarang"
   const handleRequestService = () => {
+    if (!isAuthenticated) {
+      // User belum login, redirect ke login dengan save path
+      localStorage.setItem('redirectPath', `/services/${service.id}`);
+      router.push('/login');
+      return;
+    }
+
     if (service.id === "vpn") {
       setShowSubjectModal(true); // Tampilkan modal dulu
       return;
     }
 
-    if (isPublicService || isAuthenticated) {
-      router.push(`/request/${service.id}`);
-    } else {
-      // User belum login, redirect ke login dengan save path
-      localStorage.setItem('redirectPath', `/request/${service.id}`);
-      router.push('/login');
-    }
+    router.push(`/request/${service.id}`);
   };
 
   const handleSubjectLanjut = (subjek: "pribadi" | "orang-lain") => {

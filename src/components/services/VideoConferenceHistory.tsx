@@ -413,7 +413,7 @@ export default function VideoConferenceHistory() {
 
         // Fetch detail untuk yang disetujui
         const enriched = await Promise.all(
-          mapped.map(async (item) => {
+          mapped.map(async (item: LocalPermohonan) => {
             if (item.status === "disetujui" && item.semantikId) {
               try {
                 const res2 = await fetch(

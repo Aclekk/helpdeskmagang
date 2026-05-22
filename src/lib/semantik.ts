@@ -420,3 +420,63 @@ export async function getRepositoryPermohonanById(
     `/repository/permohonan/${id}`,
   );
 }
+
+// ─── VPN (tambahan) ───────────────────────────────────────────────────────────
+
+export interface VpnListItem {
+  id: string;
+  tanggalPermohonan: string;
+  jenisPermohonan: string;
+  tujuanPermohonan: string;
+  namaPemohon: string;
+  email: string;
+  instansi: string;
+  jabatanPemohon: string;
+  statusPegawai: string;
+  nip?: string;
+  tanggalAkhirKontrak?: string;
+  nomorTelepon: string;
+  signature?: string;
+  status: "verifikasi" | "persetujuan" | "pembuatan" | "selesai" | "tolak" | string;
+  statusDetail?: string;
+  idVerifikasi?: number;
+  idPersetujuan?: number;
+  linkVpn?: string;
+  tanggalVerifikasi?: string;
+  verifikasiNotes?: string;
+  tanggalPersetujuan?: string;
+  persetujuanNotes?: string;
+  persetujuanName?: string;
+  alasanPenolakan?: string;
+  tanggalPenolakan?: string;
+  nomorRekaman?: string;
+  vpnUsername?: unknown;
+  vpnPassword?: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** GET /vpn → LOKAL */
+export async function getAllVpn(params?: {
+  limit?: number;
+  offset?: number;
+  status?: string;
+  search?: string;
+  progress?: boolean;
+}): Promise<VpnListItem[]> {
+  const query = new URLSearchParams();
+  if (params?.limit !== undefined) query.set("limit", String(params.limit));
+  if (params?.offset !== undefined) query.set("offset", String(params.offset));
+  if (params?.status) query.set("status", params.status);
+  if (params?.search) query.set("search", params.search);
+  if (params?.progress !== undefined) query.set("progress", String(params.progress));
+
+  const qs = query.toString();
+  return semantikLocalFetch<VpnListItem[]>(`/vpn${qs ? `?${qs}` : ""}`);
+}
+
+/** GET /vpn/{id} → LOKAL */
+export async function getVpnById(id: string | number): Promise<VpnListItem> {
+  return semantikLocalFetch<VpnListItem>(`/vpn/${id}`);
+}
+

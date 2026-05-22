@@ -1,5 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSemantikToken } from "@/lib/semantik";
+import { getSemantikToken, getAllVpn } from "@/lib/semantik";
+
+// GET /api/vpn — ambil semua permohonan VPN
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+
+    const params = {
+      limit: searchParams.get("limit") ? Number(searchParams.get("limit")) : undefined,
+      offset: searchParams.get("offset") ? Number(searchParams.get("offset")) : undefined,
+      status: searchParams.get("status") ?? undefined,
+      search: searchParams.get("search") ?? undefined,
+      progress: searchParams.get("progress") !== null
+        ? searchParams.get("progress") === "true"
+        : undefined,
+    };
+
+    const data = await getAllVpn(params);
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error("[GET /api/vpn] Error:", error);
+    return NextResponse.json(
+      { error: "Gagal mengambil data VPN", detail: String(error) },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {

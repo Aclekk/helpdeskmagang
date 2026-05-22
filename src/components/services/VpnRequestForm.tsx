@@ -4,7 +4,6 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
 import {
   Select,
@@ -14,10 +13,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 import SignatureCanvas from "react-signature-canvas";
 import { useAuth } from "@/contexts/AuthContext";
 import { InstansiItem } from "@/lib/semantik";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
+import { History } from "lucide-react";
 
 type VpnRequestFormProps = {
   isClient?: boolean;
@@ -40,6 +41,9 @@ export default function VpnRequestForm({
   isClient = false,
 }: VpnRequestFormProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const router = useRouter();
+
   const requestDate = useMemo(() => formatDateYYYYMMDD(new Date()), []);
   const requestDateDisplay = useMemo(() => formatDateDDMMYYYY(new Date()), []);
 
@@ -65,9 +69,7 @@ export default function VpnRequestForm({
   const [instansiError, setInstansiError] = useState<string | null>(null);
 
   const [pegawaiLoading, setPegawaiLoading] = useState(false);
-
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
-  const [submitMessage, setSubmitMessage] = useState("");
 
   const sigRef = useRef<SignatureCanvas | null>(null);
   const [isSigned, setIsSigned] = useState(false);
@@ -100,7 +102,6 @@ export default function VpnRequestForm({
 
     setNama(user.name ?? "");
     setNip(user.nip ?? "");
-    // Email diambil dari data pegawai (lihat fetchPegawai), bukan user.email yang isinya NIP
     setWhatsapp(user.whatsapp ?? "");
 
     if (!user.nip) return;
@@ -116,11 +117,9 @@ export default function VpnRequestForm({
         if (!res.ok) throw new Error(`Gagal fetch pegawai: ${res.status}`);
         const data = await res.json();
 
-        // Response dari /api/pegawai/ceknip: { status, data: { jabatan, email, kode_unor } }
         const pegawai = data?.data ?? data;
         setJabatan(pegawai?.jabatan || pegawai?.nomenklatur_jabatan || "");
 
-        // Ambil email dari data pegawai (bukan dari user.email yang isinya NIP)
         const emailPegawai = pegawai?.email || "";
         if (emailPegawai) setEmail(emailPegawai);
 
@@ -144,37 +143,35 @@ export default function VpnRequestForm({
     e.preventDefault();
 
     if (!isSigned || sigRef.current?.isEmpty()) {
-      setSubmitStatus("error");
-      setSubmitMessage("Tanda tangan wajib diisi.");
+      toast({
+        title: "Tanda Tangan Wajib",
+        description: "Tanda tangan wajib diisi.",
+        variant: "destructive",
+      });
       return;
     }
 
     try {
       setSubmitStatus("loading");
-      setSubmitMessage("");
 
       const fd = new FormData();
       fd.append("tanggalPermohonan", requestDate);
       fd.append("jenisPermohonan", jenisPermohonan);
       fd.append("tujuanPermohonan", tujuan);
       fd.append("namaPemohon", nama);
-      // Kirim email dari state (diisi dari fetchPegawai)
       fd.append("email", email);
       fd.append("jabatanPemohon", jabatan);
       fd.append("nomorTelepon", whatsapp);
 
-      // Kirim namaUnor sebagai value instansi ke server Semantik
       const selectedInstansi = instansiList.find((i) => i.idUnor === instansi);
       fd.append("instansi", selectedInstansi?.namaUnor ?? instansi);
 
-      // statusPegawai: server Semantik hanya terima "asn" atau "nonasn" (lowercase)
       fd.append("statusPegawai", isClient ? "nonasn" : "asn");
 
       if (!isClient && nip) fd.append("nip", nip);
       if (isClient && tanggalAkhirKontrak)
         fd.append("tanggalAkhirKontrak", tanggalAkhirKontrak);
 
-      // Signature sebagai base64 string
       fd.append("signature", sigRef.current!.toDataURL("image/png"));
 
       const res = await fetch("/api/vpn", {
@@ -186,56 +183,75 @@ export default function VpnRequestForm({
 
       if (!res.ok) throw new Error(result?.message ?? `Error ${res.status}`);
 
+      const noTiket = result?.noTiket ?? result?.data?.noTiket;
+
+      toast({
+        title: "Permohonan Berhasil Dikirim! 🎉",
+        description: noTiket
+          ? `No. Tiket: ${noTiket}. Tunggu konfirmasi dari admin.`
+          : "Permohonan kamu sudah masuk ke Semantik.",
+      });
+
       setSubmitStatus("success");
-      setSubmitMessage(
-        result?.message ??
-          "Permohonan VPN berhasil dikirim! Tim kami akan segera memproses.",
-      );
+
+      // Reset form
+      setJenisPermohonan("baru");
+      setNama(isClient ? "" : (user?.name ?? ""));
+      setJabatan("");
+      setNip(isClient ? "" : (user?.nip ?? ""));
+      setEmail("");
+      setWhatsapp("");
+      setInstansi("");
+      setTujuan("");
+      setStatusPegawai("ta");
+      setTanggalAkhirKontrak("");
+      setKontrakPekerjaan(null);
+      sigRef.current?.clear();
+      setIsSigned(false);
+
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      // Redirect to history page
+      router.push("/request/vpn/history");
     } catch (err) {
       console.error("[VpnRequestForm] submit:", err);
       setSubmitStatus("error");
-      setSubmitMessage(
-        err instanceof Error
-          ? err.message
-          : "Terjadi kesalahan, silakan coba lagi.",
-      );
+      toast({
+        title: "Permohonan Gagal",
+        description:
+          err instanceof Error
+            ? err.message
+            : "Terjadi kesalahan, silakan coba lagi.",
+        variant: "destructive",
+      });
     }
   };
 
   return (
     <div className="space-y-6">
-     <div className="flex items-start justify-between gap-4">
-  <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
-    Formulir Permohonan VPN Pemerintah Kota Tangerang
-  </h1>
-  <Link
-    href="/request/vpn/history"
-    className="flex-shrink-0 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition-all hover:bg-blue-100 hover:shadow-md dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400 dark:hover:bg-blue-900"
-  >
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/>
-    </svg>
-    Lihat Riwayat
-  </Link>
-</div>
-
-      {submitStatus === "success" && (
-        <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200">
-          ✅ {submitMessage}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
+            Formulir Permohonan VPN
+          </h1>
         </div>
-      )}
-
-      {submitStatus === "error" && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
-          ❌ {submitMessage}
-        </div>
-      )}
+        <Link href="/request/vpn/history">
+          <Button
+            variant="outline"
+            className="flex items-center gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300"
+          >
+            <History className="h-4 w-4" />
+            Riwayat Permohonan
+          </Button>
+        </Link>
+      </div>
 
       <Card className="overflow-hidden border-slate-200/60 bg-white shadow-lg dark:border-slate-800/60 dark:bg-slate-900/50">
         <div className="h-1.5 w-full bg-blue-600" />
         <CardHeader className="border-b border-slate-200/60 bg-white/60 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/60">
           <CardTitle className="text-lg font-semibold text-slate-900 dark:text-slate-50">
-            Formulir Permohonan VPN
+            Permohonan VPN - {isClient ? "Orang Lain" : "Pribadi"}
           </CardTitle>
         </CardHeader>
 
@@ -243,15 +259,17 @@ export default function VpnRequestForm({
           <form onSubmit={onSubmit} className="space-y-6">
             {/* Tanggal Permohonan */}
             <div className="space-y-2">
-              <Label>Tanggal Permohonan</Label>
-              <Input value={requestDateDisplay} disabled />
+              <label className="font-semibold text-slate-900 dark:text-slate-50">
+                Tanggal Permohonan
+              </label>
+              <Input value={requestDateDisplay} readOnly />
             </div>
 
             {/* Jenis Permohonan */}
             <div className="space-y-3">
-              <Label className="text-base font-semibold">
+              <label className="font-semibold text-slate-900 dark:text-slate-50">
                 Jenis Permohonan <span className="text-red-500">*</span>
-              </Label>
+              </label>
               <RadioGroup
                 value={jenisPermohonan}
                 onValueChange={(v) =>
@@ -262,92 +280,99 @@ export default function VpnRequestForm({
                 {(["baru", "perpanjangan"] as const).map((v) => (
                   <div key={v} className="flex items-center space-x-2">
                     <RadioGroupItem value={v} id={v} />
-                    <Label htmlFor={v} className="cursor-pointer capitalize">
+                    <label htmlFor={v} className="text-sm font-medium text-slate-700 dark:text-slate-200 cursor-pointer capitalize select-none">
                       {v}
-                    </Label>
+                    </label>
                   </div>
                 ))}
               </RadioGroup>
             </div>
 
-            {/* Nama */}
-            <div className="space-y-2">
-              <Label htmlFor="nama">
-                Nama <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="nama"
-                value={nama}
-                onChange={(e) => setNama(e.target.value)}
-                placeholder={
-                  pegawaiLoading ? "Memuat data…" : "Masukkan nama lengkap"
-                }
-                disabled={!isClient && !!user?.name}
-                required
-              />
-            </div>
-
-            {/* Jabatan */}
-            <div className="space-y-2">
-              <Label htmlFor="jabatan">
-                Jabatan <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="jabatan"
-                value={jabatan}
-                onChange={(e) => setJabatan(e.target.value)}
-                placeholder={
-                  pegawaiLoading ? "Memuat data…" : "Masukkan jabatan"
-                }
-                disabled={!isClient && pegawaiLoading}
-                required
-              />
+            {/* Nama & Jabatan */}
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <label className="font-semibold text-slate-900 dark:text-slate-50" htmlFor="nama">
+                  Nama <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Input
+                    id="nama"
+                    value={nama}
+                    onChange={(e) => setNama(e.target.value)}
+                    placeholder={
+                      pegawaiLoading ? "Memuat data…" : "Masukkan nama lengkap"
+                    }
+                    disabled={!isClient && !!user?.name}
+                    required
+                  />
+                  {pegawaiLoading && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="font-semibold text-slate-900 dark:text-slate-50" htmlFor="jabatan">
+                  Jabatan <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  id="jabatan"
+                  value={jabatan}
+                  onChange={(e) => setJabatan(e.target.value)}
+                  placeholder={
+                    pegawaiLoading ? "Memuat data…" : "Masukkan jabatan"
+                  }
+                  disabled={!isClient && pegawaiLoading}
+                  required
+                />
+              </div>
             </div>
 
             {/* Field kondisional */}
             {isClient ? (
               <>
-                <div className="space-y-3">
-                  <Label className="text-base font-semibold">
-                    Status Pegawai <span className="text-red-500">*</span>
-                  </Label>
-                  <RadioGroup
-                    value={statusPegawai}
-                    onValueChange={(v) =>
-                      setStatusPegawai(v as "ta" | "tp" | "lainnya")
-                    }
-                    className="flex gap-6"
-                  >
-                    {(["ta", "tp", "lainnya"] as const).map((s) => (
-                      <div key={s} className="flex items-center space-x-2">
-                        <RadioGroupItem value={s} id={s} />
-                        <Label htmlFor={s} className="cursor-pointer uppercase">
-                          {s}
-                        </Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div className="space-y-3">
+                    <label className="font-semibold text-slate-900 dark:text-slate-50">
+                      Status Pegawai <span className="text-red-500">*</span>
+                    </label>
+                    <RadioGroup
+                      value={statusPegawai}
+                      onValueChange={(v) =>
+                        setStatusPegawai(v as "ta" | "tp" | "lainnya")
+                      }
+                      className="flex gap-6 h-10 items-center"
+                    >
+                      {(["ta", "tp", "lainnya"] as const).map((s) => (
+                        <div key={s} className="flex items-center space-x-2">
+                          <RadioGroupItem value={s} id={s} />
+                          <label htmlFor={s} className="text-sm font-medium text-slate-700 dark:text-slate-200 cursor-pointer uppercase select-none">
+                            {s}
+                          </label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="font-semibold text-slate-900 dark:text-slate-50" htmlFor="tanggalAkhirKontrak">
+                      Tanggal Akhir Kontrak <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      id="tanggalAkhirKontrak"
+                      type="date"
+                      value={tanggalAkhirKontrak}
+                      onChange={(e) => setTanggalAkhirKontrak(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="tanggalAkhirKontrak">
-                    Tanggal Akhir Kontrak{" "}
-                    <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="tanggalAkhirKontrak"
-                    type="date"
-                    value={tanggalAkhirKontrak}
-                    onChange={(e) => setTanggalAkhirKontrak(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="kontrakPekerjaan">
-                    Upload Kontrak Pekerjaan{" "}
-                    <span className="text-red-500">*</span>
-                  </Label>
+                  <label className="font-semibold text-slate-900 dark:text-slate-50" htmlFor="kontrakPekerjaan">
+                    Upload Kontrak Pekerjaan <span className="text-red-500">*</span>
+                  </label>
                   <Input
                     id="kontrakPekerjaan"
                     type="file"
@@ -364,9 +389,9 @@ export default function VpnRequestForm({
               </>
             ) : (
               <div className="space-y-2">
-                <Label htmlFor="nip">
+                <label className="font-semibold text-slate-900 dark:text-slate-50" htmlFor="nip">
                   NIP <span className="text-red-500">*</span>
-                </Label>
+                </label>
                 <Input
                   id="nip"
                   value={nip}
@@ -378,46 +403,44 @@ export default function VpnRequestForm({
               </div>
             )}
 
-            {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email">
-                Email <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="contoh@contoh.com"
-                disabled={!isClient && !!email}
-                required
-              />
-            </div>
-
-            {/* WhatsApp */}
-            <div className="space-y-2">
-              <Label htmlFor="whatsapp">
-                Nomor Telp yang terhubung ke WhatsApp{" "}
-                <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="whatsapp"
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
-                placeholder="08xxxxxxxxxx"
-                required
-              />
-              <p className="text-xs text-red-500">
-                Harap pastikan nomor tersebut aktif dan terdaftar di WhatsApp.
-                Jika sudah tidak aktif, silakan diperbarui.
-              </p>
+            {/* Email & No. WhatsApp */}
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <label className="font-semibold text-slate-900 dark:text-slate-50" htmlFor="email">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="contoh@contoh.com"
+                  disabled={!isClient && !!email}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="font-semibold text-slate-900 dark:text-slate-50" htmlFor="whatsapp">
+                  Nomor Telp yang terhubung ke WhatsApp <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  id="whatsapp"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  placeholder="08xxxxxxxxxx"
+                  required
+                />
+                <p className="text-xs text-red-500">
+                  Harap pastikan nomor tersebut aktif dan terdaftar di WhatsApp.
+                </p>
+              </div>
             </div>
 
             {/* Instansi */}
             <div className="space-y-2">
-              <Label htmlFor="instansi">
+              <label className="font-semibold text-slate-900 dark:text-slate-50" htmlFor="instansi">
                 Instansi <span className="text-red-500">*</span>
-              </Label>
+              </label>
               {instansiError ? (
                 <p className="text-sm text-red-500">{instansiError}</p>
               ) : (
@@ -426,7 +449,7 @@ export default function VpnRequestForm({
                   onValueChange={setInstansi}
                   disabled={instansiLoading}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-12 rounded-xl">
                     <SelectValue
                       placeholder={
                         instansiLoading ? "Memuat instansi…" : "Pilih Instansi"
@@ -452,25 +475,25 @@ export default function VpnRequestForm({
 
             {/* Tujuan */}
             <div className="space-y-2">
-              <Label htmlFor="tujuan">
+              <label className="font-semibold text-slate-900 dark:text-slate-50" htmlFor="tujuan">
                 Tujuan Penggunaan <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
+              </label>
+              <textarea
                 id="tujuan"
                 value={tujuan}
                 onChange={(e) => setTujuan(e.target.value)}
                 placeholder="Contoh: akses aplikasi internal dari luar jaringan"
-                className="min-h-[120px]"
+                className="min-h-[120px] w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-50 dark:focus:border-blue-500 dark:focus:ring-blue-900/30"
                 required
               />
             </div>
 
             {/* Tanda Tangan */}
             <div className="space-y-2">
-              <Label>
+              <label className="font-semibold text-slate-900 dark:text-slate-50">
                 Tanda Tangan <span className="text-red-500">*</span>
-              </Label>
-              <div className="relative h-[300px] w-full overflow-hidden rounded-md border-2 border-slate-300 bg-white">
+              </label>
+              <div className="relative h-[300px] w-full overflow-hidden rounded-xl border-2 border-slate-300 bg-white dark:border-slate-700 dark:bg-white">
                 {!isSigned && (
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                     <svg
@@ -521,6 +544,7 @@ export default function VpnRequestForm({
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="rounded-lg border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-950 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-50"
                   onClick={() => {
                     sigRef.current?.clear();
                     setIsSigned(false);
@@ -532,7 +556,7 @@ export default function VpnRequestForm({
             </div>
 
             {/* Submit */}
-            <div className="flex justify-end pt-4">
+            <div className="flex justify-end pt-2">
               <Button
                 type="submit"
                 disabled={
@@ -540,9 +564,9 @@ export default function VpnRequestForm({
                   pegawaiLoading ||
                   instansiLoading
                 }
-                className="bg-gradient-to-r from-blue-600 to-blue-500 px-6 hover:from-blue-700 hover:to-blue-600"
+                className="h-12 px-8 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitStatus === "loading" ? "Mengirim…" : "Kirim"}
+                {submitStatus === "loading" ? "Mengirim..." : "Kirim Permohonan"}
               </Button>
             </div>
           </form>

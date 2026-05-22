@@ -21,6 +21,40 @@ import Image from "next/image";
 import logoHelpdesk from "@/assets/logo_helpdeskTIK.png";
 import { useState } from "react";
 
+// Ambil inisial dari nama (maks 2 kata)
+function getInitials(name?: string): string {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+}
+
+// Komponen avatar: foto kalau ada, inisial kalau tidak
+function UserAvatar({ src, name, size = 36 }: { src?: string; name?: string; size?: number }) {
+  if (src) {
+    return (
+      <Image
+        src={src}
+        alt="Avatar"
+        width={size}
+        height={size}
+        className="h-full w-full object-cover"
+      />
+    );
+  }
+  return (
+    <div
+      className="flex h-full w-full items-center justify-center rounded-full bg-primary text-primary-foreground font-bold"
+      style={{ fontSize: size * 0.35 }}
+    >
+      {getInitials(name)}
+    </div>
+  );
+}
+
 const Header = () => {
   const { theme, resolvedTheme, setTheme, toggleTheme } = useTheme();
   const { isAuthenticated, user, logout } = useAuth();
@@ -100,13 +134,7 @@ const Header = () => {
                 <button className="flex items-center gap-3 rounded-full px-2 py-1 transition hover:bg-muted">
                   {/* Avatar */}
                   <div className="h-9 w-9 overflow-hidden rounded-full border shadow-sm">
-                    <Image
-                      src={user?.avatar || "/placeholder.svg"}
-                      alt="Avatar"
-                      width={36}
-                      height={36}
-                      className="h-full w-full object-cover"
-                    />
+                    <UserAvatar src={user?.avatar} name={user?.name} size={36} />
                   </div>
 
                   {/* Nama */}
@@ -123,13 +151,7 @@ const Header = () => {
                 {/* Header Biru */}
                 <div className="relative bg-blue-600 px-6 pb-10 pt-6 text-center text-white">
                   <div className="mx-auto mb-3 h-20 w-20 overflow-hidden rounded-full border-4 border-white shadow-lg">
-                    <Image
-                      src={user?.avatar || "/placeholder.svg"} // kalau belum ada avatar pakai default
-                      alt="Avatar"
-                      width={80}
-                      height={80}
-                      className="h-full w-full object-cover"
-                    />
+                    <UserAvatar src={user?.avatar} name={user?.name} size={80} />
                   </div>
 
                   <p className="text-sm font-semibold tracking-wide">
