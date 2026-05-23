@@ -268,29 +268,47 @@ const ServiceDetail = () => {
               {isTteService ? (
                 // ─── TTE Service ──────────────────────────────────────────
                 <div className="grid gap-6 lg:grid-cols-2">
-                  <Card className="overflow-hidden border-slate-200/60 bg-white/80 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/50">
-                    <div className="h-1.5 w-full bg-blue-600" />
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:text-base">
+                  {/* Card Data TTE */}
+                  <Card className="overflow-hidden border-slate-200/60 bg-white shadow-sm dark:border-slate-800/60 dark:bg-slate-900/50">
+                    <CardContent className="space-y-5 pt-6">
+                      <h3 className="text-base font-semibold text-slate-900 dark:text-slate-50">
                         Data Tanda Tangan Elektronik
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-                        Status Sertifikat Anda ISSUE berlaku sampai 19 Juni 2026
-                      </p>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
-                        dengan email resmi yang terdaftar di BSrE{" "}
-                        {user?.email ?? "-"}
-                      </p>
-                      <div className="text-sm text-slate-600 dark:text-slate-400">
-                        Untuk merubah Passphrase anda dapat klik link berikut
+                      </h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3 rounded-xl bg-blue-50 px-4 py-3 dark:bg-blue-950/30">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/50">
+                            <CheckCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              Status Sertifikat
+                            </p>
+                            <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                              ISSUE — berlaku sampai 19 Juni 2026
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 rounded-xl bg-blue-50 px-4 py-3 dark:bg-blue-950/30">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/50">
+                            <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              Email terdaftar di BSrE
+                            </p>
+                            <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 break-all">
+                              {user?.email ?? "-"}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Untuk mengubah Passphrase, klik tombol di bawah ini.
+                      </p>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
-                            className="w-fit bg-emerald-600 hover:bg-emerald-700"
+                            className="w-full bg-blue-600 hover:bg-blue-700 py-5 font-semibold"
                             onClick={(e) => {
                               if (!isAuthenticated) {
                                 e.preventDefault();
@@ -302,7 +320,8 @@ const ServiceDetail = () => {
                               }
                             }}
                           >
-                            Ubah passphrase
+                            <PenTool className="mr-2 h-4 w-4" />
+                            Ubah Passphrase
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent className="sm:max-w-md">
@@ -311,22 +330,22 @@ const ServiceDetail = () => {
                               <AlertTriangle className="h-7 w-7 text-orange-500" />
                             </div>
                             <AlertDialogTitle className="text-center">
-                              Anda yakin ingin merubah Passphrase anda?
+                              Anda yakin ingin mengubah Passphrase?
                             </AlertDialogTitle>
                             <AlertDialogDescription className="text-center">
                               Link untuk mereset Passphrase akan dikirim ke
                               email
-                              <div className="mt-1 font-semibold text-slate-900 dark:text-slate-50">
+                              <div className="mt-2 rounded-md bg-slate-100 px-3 py-2 font-semibold text-slate-900 dark:bg-slate-800 dark:text-slate-50">
                                 {user?.email ?? "-"}
                               </div>
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter className="sm:justify-center">
                             <AlertDialogAction onClick={handleResetPassphrase}>
-                              Ya
+                              Ya, Kirim Link
                             </AlertDialogAction>
                             <AlertDialogCancel className="bg-red-600 text-white hover:bg-red-700 hover:text-white">
-                              Cancel
+                              Batal
                             </AlertDialogCancel>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -334,56 +353,58 @@ const ServiceDetail = () => {
                     </CardContent>
                   </Card>
 
-                  <Card className="overflow-hidden border-slate-200/60 bg-white/80 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/50">
-                    <div className="h-1.5 w-full bg-blue-600" />
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:text-base">
+                  {/* Card Basis Pengetahuan */}
+                  <Card className="overflow-hidden border-slate-200/60 bg-white shadow-sm dark:border-slate-800/60 dark:bg-slate-900/50">
+                    <CardContent className="space-y-4 pt-6">
+                      <h3 className="text-base font-semibold text-slate-900 dark:text-slate-50">
                         Basis Pengetahuan
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <Accordion type="single" collapsible className="w-full">
+                      </h3>
+                      <Accordion
+                        type="single"
+                        collapsible
+                        className="w-full space-y-2"
+                      >
                         <AccordionItem
                           value="tte-status"
-                          className="border-b-0"
+                          className="rounded-xl border-0 bg-blue-50 px-1 dark:bg-blue-950/30"
                         >
-                          <AccordionTrigger className="bg-blue-100/70 px-4 py-3 text-left text-sm font-medium text-slate-900 hover:no-underline dark:bg-blue-950/40 dark:text-slate-50">
+                          <AccordionTrigger className="px-3 py-3 text-left text-sm font-medium text-slate-900 hover:no-underline dark:text-slate-50">
                             Status Tanda Tangan Elektronik
                           </AccordionTrigger>
-                          <AccordionContent className="px-4 pt-3 text-slate-600 dark:text-slate-400">
+                          <AccordionContent className="px-3 pb-3 text-sm text-slate-600 dark:text-slate-400">
                             lorem ipsum
                           </AccordionContent>
                         </AccordionItem>
                         <AccordionItem
                           value="passphrase-apa"
-                          className="border-b-0"
+                          className="rounded-xl border-0 bg-blue-50 px-1 dark:bg-blue-950/30"
                         >
-                          <AccordionTrigger className="bg-blue-100/70 px-4 py-3 text-left text-sm font-medium text-slate-900 hover:no-underline dark:bg-blue-950/40 dark:text-slate-50">
+                          <AccordionTrigger className="px-3 py-3 text-left text-sm font-medium text-slate-900 hover:no-underline dark:text-slate-50">
                             Apa itu Passphrase
                           </AccordionTrigger>
-                          <AccordionContent className="px-4 pt-3 text-slate-600 dark:text-slate-400">
+                          <AccordionContent className="px-3 pb-3 text-sm text-slate-600 dark:text-slate-400">
                             lorem ipsum
                           </AccordionContent>
                         </AccordionItem>
                         <AccordionItem
                           value="tte-dipakai"
-                          className="border-b-0"
+                          className="rounded-xl border-0 bg-blue-50 px-1 dark:bg-blue-950/30"
                         >
-                          <AccordionTrigger className="bg-blue-100/70 px-4 py-3 text-left text-sm font-medium text-slate-900 hover:no-underline dark:bg-blue-950/40 dark:text-slate-50">
+                          <AccordionTrigger className="px-3 py-3 text-left text-sm font-medium text-slate-900 hover:no-underline dark:text-slate-50">
                             Dimana Tanda Tangan Elektronik digunakan
                           </AccordionTrigger>
-                          <AccordionContent className="px-4 pt-3 text-slate-600 dark:text-slate-400">
+                          <AccordionContent className="px-3 pb-3 text-sm text-slate-600 dark:text-slate-400">
                             lorem ipsum
                           </AccordionContent>
                         </AccordionItem>
                         <AccordionItem
                           value="lupa-passphrase"
-                          className="border-b-0"
+                          className="rounded-xl border-0 bg-blue-50 px-1 dark:bg-blue-950/30"
                         >
-                          <AccordionTrigger className="bg-blue-100/70 px-4 py-3 text-left text-sm font-medium text-slate-900 hover:no-underline dark:bg-blue-950/40 dark:text-slate-50">
+                          <AccordionTrigger className="px-3 py-3 text-left text-sm font-medium text-slate-900 hover:no-underline dark:text-slate-50">
                             Bagaimana jika lupa passphrase
                           </AccordionTrigger>
-                          <AccordionContent className="px-4 pt-3 text-slate-600 dark:text-slate-400">
+                          <AccordionContent className="px-3 pb-3 text-sm text-slate-600 dark:text-slate-400">
                             lorem ipsum
                           </AccordionContent>
                         </AccordionItem>
@@ -395,116 +416,126 @@ const ServiceDetail = () => {
                 // ─── Email Resmi Service ──────────────────────────────────
                 <div className="grid gap-6 lg:grid-cols-2">
                   {/* Card Email Aktif User */}
-                  <Card className="overflow-hidden border-slate-200/60 bg-white/80 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/50">
-                    <div className="h-1.5 w-full bg-blue-600" />
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:text-base">
+                  <Card className="overflow-hidden border-slate-200/60 bg-white shadow-sm dark:border-slate-800/60 dark:bg-slate-900/50">
+                    <CardContent className="space-y-5 pt-6">
+                      <h3 className="text-base font-semibold text-slate-900 dark:text-slate-50">
                         Email Resmi Anda
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Email resmi @tangerangkota.go.id yang terdaftar atas
-                        nama Anda:
-                      </p>
-
-                      {/* Email Display */}
-                      <div className="flex items-center gap-3 rounded-lg border border-blue-200/60 bg-blue-50/80 px-4 py-3 dark:border-blue-800/40 dark:bg-blue-950/30">
-                        <Mail className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
-                        <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
-                          {isAuthenticated
-                            ? emailResmiUser
-                            : "Login untuk melihat email Anda"}
-                        </span>
-                      </div>
-
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Jika Anda lupa atau ingin reset password email resmi,
-                        tim TIK Diskominfo akan membantu melalui WhatsApp.
-                      </p>
-
-                      {/* Button Reset Password */}
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
+                      </h3>
+                      {isAuthenticated ? (
+                        <>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                            Email resmi @tangerangkota.go.id yang terdaftar atas
+                            nama Anda:
+                          </p>
+                          <div className="flex items-center gap-3 rounded-xl bg-blue-50 px-4 py-3 dark:bg-blue-950/30">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/50">
+                              <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 break-all">
+                              {emailResmiUser}
+                            </p>
+                          </div>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                            Jika Anda lupa atau ingin reset password email
+                            resmi, tim TIK Diskominfo akan membantu melalui
+                            WhatsApp.
+                          </p>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button className="w-full bg-blue-600 hover:bg-blue-700 py-5 font-semibold">
+                                <MessageCircle className="mr-2 h-4 w-4" />
+                                Reset Password Email
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="sm:max-w-md">
+                              <AlertDialogHeader>
+                                <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full border-2 border-orange-300">
+                                  <AlertTriangle className="h-7 w-7 text-orange-500" />
+                                </div>
+                                <AlertDialogTitle className="text-center">
+                                  Reset Password Email Resmi?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription className="text-center">
+                                  Anda akan diarahkan ke WhatsApp untuk
+                                  menghubungi tim TIK Diskominfo. Permintaan
+                                  reset password untuk email:
+                                  <div className="mt-2 rounded-md bg-slate-100 px-3 py-2 font-semibold text-slate-900 dark:bg-slate-800 dark:text-slate-50">
+                                    {emailResmiUser}
+                                  </div>
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter className="sm:justify-center">
+                                <AlertDialogAction
+                                  className="bg-emerald-600 hover:bg-emerald-700"
+                                  onClick={handleResetPasswordEmailResmi}
+                                >
+                                  <MessageCircle className="mr-2 h-4 w-4" />
+                                  Ya, Hubungi via WhatsApp
+                                </AlertDialogAction>
+                                <AlertDialogCancel className="bg-red-600 text-white hover:bg-red-700 hover:text-white">
+                                  Batal
+                                </AlertDialogCancel>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center gap-4 py-4 text-center">
+                          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+                            <Lock className="h-7 w-7 text-slate-400" />
+                          </div>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                            Anda perlu login terlebih dahulu untuk melihat email
+                            resmi yang terdaftar.
+                          </p>
                           <Button
-                            className="w-fit bg-emerald-600 hover:bg-emerald-700"
-                            onClick={(e) => {
-                              if (!isAuthenticated) {
-                                e.preventDefault();
-                                localStorage.setItem(
-                                  "redirectPath",
-                                  "/services/email-resmi",
-                                );
-                                router.push("/login");
-                              }
+                            className="w-full bg-blue-600 hover:bg-blue-700 py-5 font-semibold"
+                            onClick={() => {
+                              localStorage.setItem(
+                                "redirectPath",
+                                "/services/email-resmi",
+                              );
+                              router.push("/login");
                             }}
                           >
-                            <MessageCircle className="mr-2 h-4 w-4" />
-                            Reset Password Email
+                            Login untuk Melihat Email Anda
                           </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent className="sm:max-w-md">
-                          <AlertDialogHeader>
-                            <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full border-2 border-orange-300">
-                              <AlertTriangle className="h-7 w-7 text-orange-500" />
-                            </div>
-                            <AlertDialogTitle className="text-center">
-                              Reset Password Email Resmi?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription className="text-center">
-                              Anda akan diarahkan ke WhatsApp untuk menghubungi
-                              tim TIK Diskominfo. Permintaan reset password
-                              untuk email:
-                              <div className="mt-2 rounded-md bg-slate-100 px-3 py-2 font-semibold text-slate-900 dark:bg-slate-800 dark:text-slate-50">
-                                {emailResmiUser}
-                              </div>
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter className="sm:justify-center">
-                            <AlertDialogAction
-                              className="bg-emerald-600 hover:bg-emerald-700"
-                              onClick={handleResetPasswordEmailResmi}
-                            >
-                              <MessageCircle className="mr-2 h-4 w-4" />
-                              Ya, Hubungi via WhatsApp
-                            </AlertDialogAction>
-                            <AlertDialogCancel className="bg-red-600 text-white hover:bg-red-700 hover:text-white">
-                              Batal
-                            </AlertDialogCancel>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
 
-                  {/* Card Keterangan singkat */}
-                  <Card className="overflow-hidden border-slate-200/60 bg-white/80 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/50">
-                    <div className="h-1.5 w-full bg-blue-600" />
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:text-base">
+                  {/* Card Tentang Layanan */}
+                  <Card className="overflow-hidden border-slate-200/60 bg-white shadow-sm dark:border-slate-800/60 dark:bg-slate-900/50">
+                    <CardContent className="space-y-5 pt-6">
+                      <h3 className="text-base font-semibold text-slate-900 dark:text-slate-50">
                         Tentang Layanan Ini
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-start gap-3">
-                        <Mail className="mt-0.5 h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" />
-                        <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                          Halaman ini menampilkan email resmi{" "}
-                          <span className="font-medium text-slate-900 dark:text-slate-50">
-                            @tangerangkota.go.id
-                          </span>{" "}
-                          yang terdaftar atas nama Anda sebagai pegawai.
-                        </p>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <MessageCircle className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                        <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                          Jika lupa password, gunakan tombol{" "}
-                          <span className="font-medium text-slate-900 dark:text-slate-50">
-                            Reset Password Email
-                          </span>{" "}
-                          untuk menghubungi tim TIK via WhatsApp.
-                        </p>
+                      </h3>
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3 rounded-xl bg-blue-50 px-4 py-3 dark:bg-blue-950/30">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/50">
+                            <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                            Layanan ini digunakan untuk pengajuan pembuatan
+                            email resmi dengan domain{" "}
+                            <span className="font-medium text-slate-900 dark:text-slate-50">
+                              @tangerangkota.go.id
+                            </span>{" "}
+                            bagi pegawai ASN di lingkungan Pemerintah Kota
+                            Tangerang.
+                          </p>
+                        </div>
+                        <div className="flex items-start gap-3 rounded-xl bg-blue-50 px-4 py-3 dark:bg-blue-950/30">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/50">
+                            <CheckCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                            Email resmi digunakan untuk komunikasi kedinasan,
+                            integrasi layanan pemerintah, dan meningkatkan
+                            profesionalitas kerja.
+                          </p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -634,21 +665,40 @@ const ServiceDetail = () => {
 
             {/* Help Card */}
             <Card className="border-slate-200/60 bg-white dark:border-slate-800/60 dark:bg-slate-900/50">
-              <CardContent className="space-y-3 pt-6">
-                <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:text-base">
+              <CardContent className="space-y-4 pt-6">
+                <h4 className="text-base font-semibold text-slate-900 dark:text-slate-50">
                   Butuh Bantuan?
                 </h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Hubungi helpdesk TIK untuk informasi lebih lanjut.
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Jika Anda memiliki pertanyaan atau mengalami kendala, silakan
+                  hubungi kami melalui:
                 </p>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                    <span className="font-medium">Email:</span>
-                    <span>diskominfo@tangerangkota.go.id</span>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 rounded-xl bg-blue-50 px-4 py-3 dark:bg-blue-950/30">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/50">
+                      <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Email
+                      </p>
+                      <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                        diskominfo@tangerangkota.go.id
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                    <span className="font-medium">Telp:</span>
-                    <span>0811-1500-152</span>
+                  <div className="flex items-center gap-3 rounded-xl bg-blue-50 px-4 py-3 dark:bg-blue-950/30">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/50">
+                      <MessageCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Telp
+                      </p>
+                      <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                        0811-1500-152
+                      </p>
+                    </div>
                   </div>
                 </div>
               </CardContent>
