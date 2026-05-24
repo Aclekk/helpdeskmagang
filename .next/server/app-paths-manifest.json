@@ -1,7 +1,11 @@
 {
-  "/page": "app/page.js",
-  "/services/page": "app/services/page.js",
+  "/request/[id]/page": "app/request/[id]/page.js",
   "/login/page": "app/login/page.js",
+  "/page": "app/page.js",
   "/request/video-conference/history/page": "app/request/video-conference/history/page.js",
-  "/services/[id]/page": "app/services/[id]/page.js"
+  "/services/[id]/page": "app/services/[id]/page.js",
+  "/api/instansi/route": "app/api/instansi/route.js",
+  "/api/auth/opendata-login/route": "app/api/auth/opendata-login/route.js",
+  "/api/pegawai/ceknip/route": "app/api/pegawai/ceknip/route.js",
+  "/request/repository-git/page": "app/request/repository-git/page.js"
 }

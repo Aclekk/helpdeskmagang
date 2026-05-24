@@ -201,14 +201,15 @@ const ServiceDetail = () => {
   // Handler untuk tombol "Ajukan Sekarang"
   const handleRequestService = () => {
     if (!isAuthenticated) {
-      // User belum login, redirect ke login dengan save path
-      localStorage.setItem("redirectPath", `/services/${service.id}`);
-      router.push("/login");
+      // Simpan redirect path ke localStorage DAN URL query param (double safety)
+      const currentPath = `/services/${service.id}`;
+      localStorage.setItem("redirectPath", currentPath);
+      router.push(`/login?from=${encodeURIComponent(currentPath)}`);
       return;
     }
 
     if (service.id === "vpn") {
-      setShowSubjectModal(true); // Tampilkan modal dulu
+      setShowSubjectModal(true);
       return;
     }
 

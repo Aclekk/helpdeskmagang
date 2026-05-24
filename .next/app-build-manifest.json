@@ -31,15 +31,35 @@
       "static/chunks/main-app.js",
       "static/chunks/app/not-found.js"
     ],
+    "/services/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/services/page.js"
+    ],
+    "/login/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/login/page.js"
+    ],
+    "/_not-found/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/_not-found/page.js"
+    ],
     "/services/[id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/services/[id]/page.js"
     ],
-    "/services/page": [
+    "/request/[id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/services/page.js"
+      "static/chunks/app/request/[id]/page.js"
+    ],
+    "/request/video-conference/history/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/request/video-conference/history/page.js"
     ],
     "/request/vpn/page": [
       "static/chunks/webpack.js",
@@ -51,25 +71,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/request/vpn/history/page.js"
     ],
-    "/request/[id]/page": [
+    "/request/vpn-client/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/request/[id]/page.js"
+      "static/chunks/app/request/vpn-client/page.js"
     ],
-    "/login/page": [
+    "/request/repository-git/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/login/page.js"
-    ],
-    "/request/video-conference/history/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/request/video-conference/history/page.js"
-    ],
-    "/incident/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/incident/page.js"
+      "static/chunks/app/request/repository-git/page.js"
     ]
   }
 }

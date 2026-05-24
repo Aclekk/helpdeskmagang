@@ -1,29 +1,33 @@
-'use client'
+"use client";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, LogIn, AlertCircle, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import logoHelpdesk from "@/assets/logo_helpdeskTIK.png";
 
-const Login = () => {
+// ✅ Helper: ambil redirect path — prioritas URL query param, fallback localStorage
+function getRedirectPath(fromQuery: string | null): string {
+  if (fromQuery) return decodeURIComponent(fromQuery);
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("redirectPath") || "/";
+  }
+  return "/";
+}
+
+function LoginForm() {
   const router = useRouter();
-  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const fromQuery = searchParams.get("from"); // ?from=/services/video-conference
   const { login, isAuthenticated } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -32,38 +36,34 @@ const Login = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Ambil redirect path dari localStorage (dari ProtectedRoute)
-  const from = typeof window !== 'undefined' ? localStorage.getItem('redirectPath') || "/" : "/";
-
-  // Kalau udah login, redirect
+  // ✅ Kalau udah login (refresh/back), redirect ke tujuan
   useEffect(() => {
     if (isAuthenticated) {
-      localStorage.removeItem('redirectPath');
-      router.push(from);
+      const redirectTo = getRedirectPath(fromQuery);
+      localStorage.removeItem("redirectPath");
+      router.replace(redirectTo);
     }
-  }, [isAuthenticated, router, from]);
+  }, [isAuthenticated, router, fromQuery]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
-    // Validasi input
     if (!email || !password) {
       setError("NIP dan password wajib diisi");
       setIsLoading(false);
       return;
     }
 
-    // Coba login
     const result = await login(email, password);
 
     if (result.ok) {
-      // Login berhasil - redirect ke halaman sebelumnya atau home
-      localStorage.removeItem('redirectPath');
-      router.push(from);
+      // ✅ Ambil redirect path saat login berhasil
+      const redirectTo = getRedirectPath(fromQuery);
+      localStorage.removeItem("redirectPath");
+      router.replace(redirectTo);
     } else {
-      // Login gagal
       setError(result.message || "NIP atau password salah");
       setIsLoading(false);
     }
@@ -74,7 +74,6 @@ const Login = () => {
       <div className="container max-w-md">
         <Card className="border-slate-200/60 shadow-xl dark:border-slate-800/60">
           <CardHeader className="space-y-4 text-center">
-            {/* Logo */}
             <div className="flex justify-center">
               <div className="relative h-20 w-20">
                 <div className="absolute inset-0 animate-pulse rounded-full bg-blue-500/20 blur-xl" />
@@ -87,17 +86,13 @@ const Login = () => {
                 </div>
               </div>
             </div>
-
-            <div>
-              <CardTitle className="text-2xl font-bold text-slate-900 dark:text-slate-50">
-                Helpdesk TIK
-              </CardTitle>
-            </div>
+            <CardTitle className="text-2xl font-bold text-slate-900 dark:text-slate-50">
+              Helpdesk TIK
+            </CardTitle>
           </CardHeader>
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Error Alert */}
               {error && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
@@ -105,7 +100,6 @@ const Login = () => {
                 </Alert>
               )}
 
-              {/* NIP Field */}
               <div className="space-y-2">
                 <Label htmlFor="nip">NIP</Label>
                 <Input
@@ -119,7 +113,6 @@ const Login = () => {
                 />
               </div>
 
-              {/* Password Field with Show/Hide Toggle */}
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
@@ -142,7 +135,6 @@ const Login = () => {
                     onTouchStart={() => setShowPassword(true)}
                     onTouchEnd={() => setShowPassword(false)}
                     disabled={isLoading}
-                    aria-label={showPassword ? "Sembunyikan password" : "Lihat password"}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -153,7 +145,6 @@ const Login = () => {
                 </div>
               </div>
 
-              {/* Login Button */}
               <Button
                 type="submit"
                 className="w-full bg-gradient-to-r from-blue-600 to-blue-500"
@@ -172,10 +163,10 @@ const Login = () => {
                 )}
               </Button>
 
-              {/* Info Text */}
-              <p className="text-center text-xs text-slate-500 dark:text-slate-400">Gunakan NIP pegawai untuk login</p>
+              <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+                Gunakan NIP pegawai untuk login
+              </p>
 
-              {/* Back to Home */}
               <div className="text-center">
                 <Link
                   href="/"
@@ -190,6 +181,19 @@ const Login = () => {
       </div>
     </div>
   );
-};
+}
+
+// ✅ Wrap dengan Suspense karena useSearchParams butuh ini di Next.js
+const Login = () => (
+  <Suspense
+    fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    }
+  >
+    <LoginForm />
+  </Suspense>
+);
 
 export default Login;
